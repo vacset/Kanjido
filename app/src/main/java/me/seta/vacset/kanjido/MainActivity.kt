@@ -3,45 +3,26 @@ package me.seta.vacset.kanjido
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import me.seta.vacset.kanjido.ui.theme.KanjidoTheme
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import me.seta.vacset.kanjido.presentation.navigation.Route
+import me.seta.vacset.kanjido.presentation.entry.EntryScreen
+import me.seta.vacset.kanjido.presentation.participant.ParticipantsScreen
+import me.seta.vacset.kanjido.presentation.review.ReviewScreen
+import me.seta.vacset.kanjido.presentation.summary.SummaryScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
-            KanjidoTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+            val nav = rememberNavController()
+            NavHost(navController = nav, startDestination = Route.Entry.path) {
+                composable(Route.Entry.path) { EntryScreen(onNext = { nav.navigate(Route.Participants.path) }) }
+                composable(Route.Participants.path) { ParticipantsScreen(onNext = { nav.navigate(Route.Review.path) }) }
+                composable(Route.Review.path) { ReviewScreen(onNext = { nav.navigate(Route.Summary.path) }) }
+                composable(Route.Summary.path) { SummaryScreen() }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    KanjidoTheme {
-        Greeting("Android")
     }
 }

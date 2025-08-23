@@ -44,47 +44,39 @@ kotlin {
     }
 }
 
-/*
 dependencies {
-
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
+    // Compose BOM (main)
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
+    // Compose BOM also for androidTest and debug (so test/tooling artifacts get versions)
     androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
-}
-*/
-dependencies {
-    // Compose BOM
-    implementation(platform(libs.androidx.compose.bom))
+    debugImplementation(platform(libs.androidx.compose.bom))
 
-    // Compose UI set
+    // Compose UI set (bundle)
     implementation(libs.bundles.compose)
-    debugImplementation(libs.androidx.compose.ui.tooling) // optional preview tooling
+
+    // Preview tooling (debug only is common, but implementation also works)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
     // AndroidX platform libs
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.navigation.compose)
 
     // Features
     implementation(libs.zxing)
     implementation(libs.mlkit.text.recognition)
+    implementation(libs.androidx.datastore.preferences)
 
-    // Tests
+    // Unit tests
     testImplementation(libs.junit)
+
+    // Android tests
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    // IMPORTANT: Use the alias you defined above (compose prefix), not the template one.
     androidTestImplementation(libs.androidx.ui.test.junit4)
+
+    // Compose test manifest (debug)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
