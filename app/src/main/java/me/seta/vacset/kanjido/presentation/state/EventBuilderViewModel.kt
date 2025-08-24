@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import me.seta.vacset.kanjido.data.model.Event
 import me.seta.vacset.kanjido.data.model.Item
 import me.seta.vacset.kanjido.data.model.Participant
+import me.seta.vacset.kanjido.util.generateEventName
 import java.math.BigDecimal
 import java.util.UUID
 
@@ -27,7 +28,7 @@ class EventBuilderViewModel : ViewModel() {
     }
 
     // Build a domain Event with actual Item objects + selected tags
-    fun toEvent(name: String = "Session", promptPayId: String? = null): Event {
+    fun toEvent(name: String = generateEventName(), promptPayId: String? = null): Event {
         val ps = participants.toList()
         val idSetAll = ps.map { it.id }.toSet()
 
