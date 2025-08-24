@@ -1,103 +1,229 @@
 package me.seta.vacset.kanjido.presentation.entry
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import me.seta.vacset.kanjido.presentation.state.EventBuilderViewModel
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun EntryScreen(
-    vm: EventBuilderViewModel, onNext: () -> Unit, onQuickQr: (String) -> Unit,
+    vm: EventBuilderViewModel,
+    onNext: () -> Unit,
+    onQuickQr: (String) -> Unit,
     promptPayId: String?,
     onOpenSettings: () -> Unit
 ) {
     val context = LocalContext.current
-
     var label by remember { mutableStateOf("") }
     var amountText by remember { mutableStateOf("") }
 
-    Column(
-        Modifier
+    // Always side-by-side (two-pane), even on phones
+    Row(
+        modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Add Items", style = MaterialTheme.typography.titleLarge)
+        CalculatorPadPane(
+            modifier = Modifier.weight(1f), // must be inside RowScope
+            label = label,
+            onLabelChange = { label = it },
+            amountText = amountText,
+            onAmountChange = { amountText = it },
+            onAdd = {
+                amountText.toBigDecimalOrNull()?.let { bd ->
+                    vm.addItem(bd.setScale(2), label.ifBlank { null })
+                    label = ""; amountText = ""
+                }
+            },
+            onQuickQr = {
+                if (promptPayId.isNullOrBlank()) {
+                    Toast.makeText(
+                        context,
+                        "You must set PromptPay ID in Preferences first",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    amountText.toBigDecimalOrNull()?.let { bd ->
+                        onQuickQr(bd.setScale(2).toPlainString())
+                    }
+                }
+            },
+            onNext = onNext,
+            onOpenSettings = onOpenSettings
+        )
+
+        ItemListPane(
+            modifier = Modifier.weight(1f), // must be inside RowScope
+            vm = vm,
+            header = "Items"
+        )
+    }
+}
+
+@Composable
+private fun CalculatorPadPane(
+    modifier: Modifier = Modifier,
+    label: String,
+    onLabelChange: (String) -> Unit,
+    amountText: String,
+    onAmountChange: (String) -> Unit,
+    onAdd: () -> Unit,
+    onQuickQr: () -> Unit,
+    onNext: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+    ) {
+        Text(
+            "Add Item",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
         Spacer(Modifier.height(8.dp))
+
         OutlinedTextField(
             value = label,
-            onValueChange = { label = it },
+            onValueChange = onLabelChange,
             label = { Text("Label (optional)") },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = amountText,
-            onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } },
-            label = { Text("Amount (THB)") },
-            modifier = Modifier.fillMaxWidth()
-        )
+
+        AmountDisplay(amountText, onAmountChange)
         Spacer(Modifier.height(8.dp))
-        // presentation/entry/EntryScreen.kt (only the buttons row)
-        Row {
-            Button(onClick = {
-                amountText.toBigDecimalOrNull()?.let { bd ->
-                    vm.addItem(amount = bd.setScale(2), label = label.ifBlank { null })
-                    label = ""; amountText = ""
-                }
-            }) { Text("Add") }
 
-            Spacer(Modifier.width(8.dp))
+        NumberPad(
+            onDigit = { d -> onAmountChange(amountText + d) },
+            onDot = { if (!amountText.contains('.')) onAmountChange(amountText + ".") },
+            onBackspace = { if (amountText.isNotEmpty()) onAmountChange(amountText.dropLast(1)) },
+            onClear = { onAmountChange("") }
+        )
 
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
-                onClick = onNext,
-                enabled = vm.items.isNotEmpty()
-            ) { Text("Next") }
-
-            Spacer(Modifier.width(8.dp))
-
-            // Fast QR – no participants, just one amount
-            Button(
-                onClick = {
-                    if (promptPayId.isNullOrBlank()) {
-                        Toast.makeText(
-                            context,
-                            "You must set PromptPay ID in Preferences first",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    } else {
-                        amountText.toBigDecimalOrNull()?.let { bd ->
-                            onQuickQr(bd.setScale(2).toPlainString())
-                        }
-                    }
-                },
+                onClick = onQuickQr,
                 enabled = amountText.toBigDecimalOrNull() != null
-            ) {
-                Text("QR Now")
-            }
-
-            Spacer(Modifier.width(8.dp))
-
-            OutlinedButton(onClick = onOpenSettings) {
-                Text("Preferences")
-            }
+            ) { Text("QR") }
+            OutlinedButton(onClick = onOpenSettings) { Text("Pref") }
         }
 
-        Spacer(Modifier.height(16.dp))
-        LazyColumn {
-            items(vm.items.size) { idx ->
-                val it = vm.items[idx]
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = onAdd,
+                enabled = amountText.toBigDecimalOrNull() != null
+            ) { Text("Add") }
+            Button(onClick = onNext) { Text("Next") }
+        }
+
+    }
+}
+
+@Composable
+private fun ItemListPane(
+    modifier: Modifier = Modifier,
+    vm: EventBuilderViewModel,
+    header: String
+) {
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+    ) {
+        Text(header, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(8.dp))
+        HorizontalDivider()
+        Spacer(Modifier.height(8.dp))
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(vm.items) { it ->
                 ListItem(
-                    headlineContent = { Text(it.label ?: "Item ${idx + 1}") },
+                    headlineContent = { Text(it.label ?: "Item") },
                     supportingContent = { Text("฿${it.amount.setScale(2)}") }
                 )
-                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+                HorizontalDivider()
             }
         }
+    }
+}
+
+@Composable
+private fun AmountDisplay(amountText: String, onAmountChange: (String) -> Unit) {
+    Surface(
+        tonalElevation = 2.dp,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("฿", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = amountText.ifBlank { "0" },
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun NumberPad(
+    onDigit: (String) -> Unit,
+    onDot: () -> Unit,
+    onBackspace: () -> Unit,
+    onClear: () -> Unit
+) {
+    // 3×4 grid: 1 2 3 / 4 5 6 / 7 8 9 / . 0 ⌫
+    val rows = listOf(
+        listOf("1", "2", "3"),
+        listOf("4", "5", "6"),
+        listOf("7", "8", "9"),
+        listOf(".", "0", "⌫")
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        rows.forEach { r ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                r.forEach { key ->
+                    Button(
+                        onClick = {
+                            when (key) {
+                                "⌫" -> onBackspace()
+                                "." -> onDot()
+                                else -> onDigit(key)
+                            }
+                        },
+                        // IMPORTANT: use weight(1f) positionally, inside RowScope
+                        modifier = Modifier.weight(1f)
+                    ) { Text(key) }
+                }
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        OutlinedButton(
+            onClick = onClear,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Clear") }
     }
 }
