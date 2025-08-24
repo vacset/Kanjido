@@ -18,7 +18,7 @@ import me.seta.vacset.kanjido.presentation.state.EventBuilderViewModel
 import me.seta.vacset.kanjido.util.QrUtil
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.ui.Alignment
@@ -128,7 +128,11 @@ fun QrPagerScreen(
                     ) {
                         Text("Summary", style = MaterialTheme.typography.titleLarge)
                         Spacer(Modifier.height(8.dp))
-                        Divider()
+                        HorizontalDivider(
+                            Modifier,
+                            DividerDefaults.Thickness,
+                            DividerDefaults.color
+                        )
                         Spacer(Modifier.height(8.dp))
                         split.perPerson.forEach { pt ->
                             ListItem(

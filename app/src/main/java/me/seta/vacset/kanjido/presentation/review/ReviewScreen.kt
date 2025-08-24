@@ -30,7 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ReviewScreen(
-    vm: EventBuilderViewModel, onNext: () -> Unit, promptPayId: String?, onOpenSettings: () -> Unit
+    vm: EventBuilderViewModel, onNext: () -> Unit, promptPayId: String?
 ) {
     val context = LocalContext.current
     val participants = vm.participants

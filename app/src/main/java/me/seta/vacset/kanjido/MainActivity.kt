@@ -17,7 +17,6 @@ import me.seta.vacset.kanjido.presentation.qr.QuickQrScreen
 import me.seta.vacset.kanjido.presentation.review.QrPagerScreen
 import me.seta.vacset.kanjido.presentation.review.ReviewScreen
 import me.seta.vacset.kanjido.presentation.summary.SummaryScreen
-import androidx.lifecycle.viewmodel.compose.viewModel
 import me.seta.vacset.kanjido.presentation.settings.PromptPayViewModel
 import me.seta.vacset.kanjido.presentation.settings.SettingsScreen
 
@@ -51,8 +50,7 @@ class MainActivity : ComponentActivity() {
                 composable(Route.Review.path) {
                     ReviewScreen(
                         vm = vm, onNext = { nav.navigate(Route.QrPager.path) },
-                        promptPayId = promptPayId,
-                        onOpenSettings = { nav.navigate(Route.Settings.path) }
+                        promptPayId = promptPayId
                     )
                 }
                 composable(Route.QrPager.path) {
