@@ -15,36 +15,48 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import me.seta.vacset.kanjido.domain.promptpay.detectPromptPayIdType
 
 @ExperimentalMaterial3Api
 @Composable
 fun QuickQrScreen(
     amountTHB: String,
-    promptPayId: String?,   // <— pass from MainActivity
+    promptPayId: String?,      // Option B: saved ID passed in
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val parsedAmount = remember(amountTHB) { amountTHB.toBigDecimalOrNull()?.setScale(2) }
 
-    // Guardrails: show toast and return early if preconditions aren’t met
-    if (promptPayId.isNullOrBlank() || parsedAmount == null) {
-        LaunchedEffect(promptPayId, parsedAmount) {
-            val msg = when {
-                promptPayId.isNullOrBlank() -> "You must set PromptPay ID in Preferences first"
-                else -> "Amount is invalid"
-            }
+    // Guard: missing amount or ID -> toast + back
+    if (parsedAmount == null || promptPayId.isNullOrBlank()) {
+        LaunchedEffect(parsedAmount, promptPayId) {
+            val msg = if (parsedAmount == null) "Amount is invalid"
+            else "You must set PromptPay ID in Preferences first"
             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
             onBack()
         }
-        // Render nothing while popping back
         return
     }
 
-    // Build Tag-29 EMV payload (dynamic QR → PoI=12)
-    val payload = remember(promptPayId, parsedAmount) {
+    // Guard: unsupported ID format -> toast + back
+    val idType = remember(promptPayId) { detectPromptPayIdType(promptPayId) }
+    if (idType == null) {
+        LaunchedEffect(promptPayId) {
+            Toast.makeText(
+                context,
+                "Invalid PromptPay ID. Only Phone or National ID is supported.",
+                Toast.LENGTH_SHORT
+            ).show()
+            onBack()
+        }
+        return
+    }
+
+    // Build Tag 29 payload (dynamic → PoI=12)
+    val payload = remember(promptPayId, parsedAmount, idType) {
         PromptPayBuilder.build(
             PromptPayBuilder.Input(
-                idType = detectIdType(promptPayId),
+                idType = idType,
                 idValueRaw = promptPayId,
                 amountTHB = parsedAmount
             )
@@ -65,29 +77,25 @@ fun QuickQrScreen(
         }
     ) { padding ->
         Column(
-            Modifier.padding(padding).fillMaxSize().padding(16.dp)
+            Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
             Text("Amount: ฿${parsedAmount.toPlainString()}", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(16.dp))
             Image(
                 bitmap = qrBitmap.asImageBitmap(),
                 contentDescription = "PromptPay QR",
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).height(280.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .height(280.dp)
             )
             Spacer(Modifier.height(8.dp))
             Text("Dynamic PromptPay QR (PoI=12).", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(16.dp))
             Button(onClick = { /* TODO: share QR */ }) { Text("Share QR") }
         }
-    }
-}
-
-/** Same heuristic we used in the pager screen. */
-private fun detectIdType(raw: String): PromptPayBuilder.IdType {
-    val d = raw.filter { it.isDigit() }
-    return when {
-        d.startsWith("0066") || d.startsWith("66") || d.startsWith("0") -> PromptPayBuilder.IdType.PHONE
-        d.length == 13 -> PromptPayBuilder.IdType.NATIONAL_ID
-        else -> PromptPayBuilder.IdType.BANK_ACCOUNT
     }
 }

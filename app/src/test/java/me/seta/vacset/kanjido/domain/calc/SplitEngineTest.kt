@@ -17,8 +17,7 @@ class SplitEngineTest {
             participants = listOf(a, b),
             items = listOf(
                 Item(amount = BigDecimal("100.00"), taggedParticipantIds = setOf("ALL"))
-            ),
-            promptPayId = null
+            )
         )
 
         val result = splitEvent(event)
@@ -38,8 +37,7 @@ class SplitEngineTest {
             participants = listOf(a, b, c),
             items = listOf(
                 Item(amount = BigDecimal("100.00"), taggedParticipantIds = setOf("ALL"))
-            ),
-            promptPayId = null
+            )
         )
 
         val result = splitEvent(event)

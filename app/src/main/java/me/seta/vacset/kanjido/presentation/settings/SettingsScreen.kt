@@ -43,6 +43,7 @@ fun SettingsScreen(
                 singleLine = true
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // TODO: add validation by calling isValidThaiNationalId before save button enabled
                 Button(
                     onClick = {
                         vm.setPromptPayId(localId)
@@ -56,7 +57,7 @@ fun SettingsScreen(
                 onClick = {
                     // Minimal hint only; validation is handled later by the QR builder
                 },
-                label = { Text("Tip: 0812345678 or +6681… or 0066…") }
+                label = { Text("Tip: phone (08....) or citizen id only") }
             )
         }
     }
