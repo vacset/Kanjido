@@ -25,6 +25,7 @@ class EventBuilderViewModel : ViewModel() {
 
     fun addItem(amount: BigDecimal, label: String?) {
         items.add(ItemDraft(label = label?.trim().takeUnless { it.isNullOrBlank() }, amount = amount))
+        // TODO: add to history once the first item is entered
     }
 
     // Build a domain Event with actual Item objects + selected tags
