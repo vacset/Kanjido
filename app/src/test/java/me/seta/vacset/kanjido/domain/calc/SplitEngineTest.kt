@@ -2,6 +2,7 @@ package me.seta.vacset.kanjido.domain.calc
 
 import me.seta.vacset.kanjido.data.model.*
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 
@@ -27,30 +28,31 @@ class SplitEngineTest {
     }
 
     @Test
-    fun `drift of 0_01 assigned to largest payer`() {
+    fun `drift of 0_01 assigned to one participant when splitting 100 among 3`() {
         val a = Participant(name = "A")
         val b = Participant(name = "B")
-        // 3 items: 0_01 drift scenario after rounding
+        val c = Participant(name = "C")
+
         val event = Event(
-            name = "drift",
-            participants = listOf(a, b),
+            name = "drift-3p",
+            participants = listOf(a, b, c),
             items = listOf(
-                Item(amount = BigDecimal("33.33"), taggedParticipantIds = setOf("ALL")),
-                Item(amount = BigDecimal("33.33"), taggedParticipantIds = setOf("ALL")),
-                Item(amount = BigDecimal("33.34"), taggedParticipantIds = setOf("ALL")),
+                Item(amount = BigDecimal("100.00"), taggedParticipantIds = setOf("ALL"))
             ),
             promptPayId = null
         )
 
         val result = splitEvent(event)
-        assertEquals(BigDecimal("100.00"), result.grandTotal)
 
-        val aAmt = result.perPerson.first { it.participant.name=="A" }.amount
-        val bAmt = result.perPerson.first { it.participant.name=="B" }.amount
-        // totals must sum to grandTotal
-        assertEquals(BigDecimal("100.00"), aAmt + bAmt)
-        // one of them should carry the extra 0.01
-        val amounts = setOf(aAmt, bAmt)
-        assert(amounts.contains(BigDecimal("50.01")) && amounts.contains(BigDecimal("49.99")))
+        // Totals should sum to grand total
+        val sum = result.perPerson.map { it.amount }.reduce(BigDecimal::add)
+        assertEquals(BigDecimal("100.00"), result.grandTotal)
+        assertEquals(result.grandTotal, sum)
+
+        // Expect exactly one person to have 33.34, others 33.33
+        val amounts = result.perPerson.map { it.amount }
+        val count334 = amounts.count { it == BigDecimal("33.34") }
+        val count333 = amounts.count { it == BigDecimal("33.33") }
+        assertTrue(count334 == 1 && count333 == 2)
     }
 }
