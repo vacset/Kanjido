@@ -116,16 +116,6 @@ object PromptPayBuilder {
         return Result(content = full, isDynamic = isDyn)
     }
 
-    fun buildDummy(): Result {
-        return build(
-            Input(
-                idType = IdType.NATIONAL_ID,
-                idValueRaw = "1234567890123",              // 13-digit citizen ID
-                amountTHB = null                           // no amount → static QR (PoI=11)
-            )
-        )
-    }
-
     // ---------- helpers (EMV TLV utilities) ----------
 
     private fun tag(id2: String, value: String): String {

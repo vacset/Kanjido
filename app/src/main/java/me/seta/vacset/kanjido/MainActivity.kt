@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.collectAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -16,6 +17,9 @@ import me.seta.vacset.kanjido.presentation.qr.QuickQrScreen
 import me.seta.vacset.kanjido.presentation.review.QrPagerScreen
 import me.seta.vacset.kanjido.presentation.review.ReviewScreen
 import me.seta.vacset.kanjido.presentation.summary.SummaryScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
+import me.seta.vacset.kanjido.presentation.settings.PromptPayViewModel
+import me.seta.vacset.kanjido.presentation.settings.SettingsScreen
 
 @ExperimentalMaterial3Api
 class MainActivity : ComponentActivity() {
@@ -24,6 +28,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             val nav = rememberNavController()
             val vm: EventBuilderViewModel = viewModel() // shared across NavHost
+            val settingsVm: PromptPayViewModel = viewModel()
+            // observe saved PromptPay ID (null if not set)
+            val promptPayId = settingsVm.promptPayIdFlow.collectAsState().value
 
             NavHost(navController = nav, startDestination = Route.Entry.path) {
                 composable(Route.Entry.path) {
@@ -33,27 +40,44 @@ class MainActivity : ComponentActivity() {
                         // NEW: pass a lambda that navigates to QuickQr with the amount
                         onQuickQr = { amount ->
                             nav.navigate(Route.QuickQr.path(amount))
-                        }
+                        },
+                        promptPayId = promptPayId,
+                        onOpenSettings = { nav.navigate(Route.Settings.path) }
                     )
                 }
                 composable(Route.Participants.path) {
                     ParticipantsScreen(vm = vm, onNext = { nav.navigate(Route.Review.path) })
                 }
                 composable(Route.Review.path) {
-                    ReviewScreen(vm = vm, onNext = { nav.navigate(Route.QrPager.path) })
+                    ReviewScreen(
+                        vm = vm, onNext = { nav.navigate(Route.QrPager.path) },
+                        promptPayId = promptPayId,
+                        onOpenSettings = { nav.navigate(Route.Settings.path) }
+                    )
                 }
                 composable(Route.QrPager.path) {
-                    QrPagerScreen(vm = vm, onClose = { nav.popBackStack() })
+                    QrPagerScreen(
+                        vm = vm,
+                        promptPayId = promptPayId,
+                        onBack = { nav.popBackStack() })
                 }
                 composable(Route.Summary.path) {
                     SummaryScreen()
                 }
-                // NEW: Quick QR destination
+                // Quick QR destination
                 composable(Route.QuickQr.path) { backStack ->
                     val amount = backStack.arguments?.getString("amount").orEmpty()
                     QuickQrScreen(
                         amountTHB = amount,
-                        onClose = { nav.popBackStack() }
+                        promptPayId = promptPayId,         // <— from Settings VM state
+                        onBack = { nav.popBackStack() }
+                    )
+                }
+
+                composable(Route.Settings.path) {
+                    SettingsScreen(
+                        vm = settingsVm,
+                        onDone = { nav.popBackStack() }
                     )
                 }
             }

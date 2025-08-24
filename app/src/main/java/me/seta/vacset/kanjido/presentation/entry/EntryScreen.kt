@@ -8,9 +8,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import me.seta.vacset.kanjido.presentation.state.EventBuilderViewModel
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
-fun EntryScreen(vm: EventBuilderViewModel, onNext: () -> Unit, onQuickQr: (String) -> Unit) {
+fun EntryScreen(
+    vm: EventBuilderViewModel, onNext: () -> Unit, onQuickQr: (String) -> Unit,
+    promptPayId: String?,
+    onOpenSettings: () -> Unit
+) {
+    val context = LocalContext.current
+
     var label by remember { mutableStateOf("") }
     var amountText by remember { mutableStateOf("") }
 
@@ -53,15 +61,31 @@ fun EntryScreen(vm: EventBuilderViewModel, onNext: () -> Unit, onQuickQr: (Strin
 
             Spacer(Modifier.width(8.dp))
 
-            // NEW: Fast QR – no participants, just one amount
+            // Fast QR – no participants, just one amount
             Button(
                 onClick = {
-                    amountText.toBigDecimalOrNull()?.let { bd ->
-                        onQuickQr(bd.setScale(2).toPlainString())
+                    if (promptPayId.isNullOrBlank()) {
+                        Toast.makeText(
+                            context,
+                            "You must set PromptPay ID in Preferences first",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        amountText.toBigDecimalOrNull()?.let { bd ->
+                            onQuickQr(bd.setScale(2).toPlainString())
+                        }
                     }
                 },
                 enabled = amountText.toBigDecimalOrNull() != null
-            ) { Text("QR Now") }
+            ) {
+                Text("QR Now")
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            OutlinedButton(onClick = onOpenSettings) {
+                Text("Preferences")
+            }
         }
 
         Spacer(Modifier.height(16.dp))

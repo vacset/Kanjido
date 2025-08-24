@@ -29,7 +29,7 @@ class EventBuilderViewModel : ViewModel() {
     }
 
     // Build a domain Event with actual Item objects + selected tags
-    fun toEvent(name: String = generateEventName(), promptPayId: String? = null): Event {
+    fun toEvent(name: String = generateEventName()): Event {
         val ps = participants.toList()
         val idSetAll = ps.map { it.id }.toSet()
 
@@ -49,8 +49,7 @@ class EventBuilderViewModel : ViewModel() {
         return Event(
             name = name,
             participants = ps,
-            items = builtItems,
-            promptPayId = promptPayId
+            items = builtItems
         )
     }
 

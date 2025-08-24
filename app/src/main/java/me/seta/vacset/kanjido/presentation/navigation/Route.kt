@@ -8,5 +8,9 @@ sealed class Route(val path: String) {
     data object QuickQr : Route("quickqr/{amount}") {
         fun path(amount: String) = "quickqr/$amount"
     }
-    data object QrPager: Route("qrpager")
+
+    data object QrPager : Route("qrpager")
+
+    data object Settings : Route("settings")
+
 }

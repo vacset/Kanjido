@@ -21,8 +21,7 @@ data class Event(
     val name: String,        // e.g., "16 Aug evening"
     val createdAt: Instant = Instant.now(),
     val participants: List<Participant>,
-    val items: List<Item>,
-    val promptPayId: String? // phone or citizen ID
+    val items: List<Item>
 )
 
 data class PersonTotal(

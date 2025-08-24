@@ -24,13 +24,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import me.seta.vacset.kanjido.presentation.state.EventBuilderViewModel
 import me.seta.vacset.kanjido.domain.calc.splitEvent
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ReviewScreen(
-    vm: EventBuilderViewModel,
-    onNext: () -> Unit
+    vm: EventBuilderViewModel, onNext: () -> Unit, promptPayId: String?, onOpenSettings: () -> Unit
 ) {
+    val context = LocalContext.current
     val participants = vm.participants
     val items = vm.items
 
@@ -46,8 +48,7 @@ fun ReviewScreen(
         Spacer(Modifier.height(8.dp))
 
         LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(items) { itemDraft ->
                 Card {
@@ -64,8 +65,7 @@ fun ReviewScreen(
                                 FilterChip(
                                     selected = selected,
                                     onClick = { vm.toggleAssignment(itemDraft.id, p.id) },
-                                    label = { Text(p.name) }
-                                )
+                                    label = { Text(p.name) })
                             }
                         }
 
@@ -89,15 +89,24 @@ fun ReviewScreen(
         split.perPerson.forEach { pt ->
             ListItem(
                 headlineContent = { Text(pt.participant.name) },
-                supportingContent = { Text("฿${pt.amount.setScale(2)}") }
-            )
+                supportingContent = { Text("฿${pt.amount.setScale(2)}") })
         }
         Spacer(Modifier.height(8.dp))
         Text("Grand total: ฿${split.grandTotal.setScale(2)}")
 
         Spacer(Modifier.height(16.dp))
         Button(
-            onClick = onNext,
+            onClick = {
+                if (promptPayId.isNullOrBlank()) {
+                    Toast.makeText(
+                        context,
+                        "You must set PromptPay ID in Preferences first",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    onNext()
+                }
+            },
             enabled = participants.isNotEmpty() && items.isNotEmpty()
         ) {
             Text("Generate QR Pages")
