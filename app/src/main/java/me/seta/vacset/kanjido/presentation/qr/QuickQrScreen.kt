@@ -13,11 +13,15 @@ import me.seta.vacset.kanjido.util.QrUtil
 @ExperimentalMaterial3Api
 @Composable
 fun QuickQrScreen(amountTHB: String, onClose: () -> Unit) {
+
     val payload = PromptPayBuilder.build(
-        id = "" /* leave blank for now or fetch from Prefs if you require it */,
-        amountTHB = amountTHB,
-        reference = null
+        PromptPayBuilder.Input(
+            idType = PromptPayBuilder.IdType.NATIONAL_ID,
+            idValueRaw = "1234567890123",              // 13-digit citizen ID
+            amountTHB = null                           // no amount → static QR (PoI=11)
+        )
     )
+
     val qr = QrUtil.generate(payload.content, size = 512)
 
     Scaffold(

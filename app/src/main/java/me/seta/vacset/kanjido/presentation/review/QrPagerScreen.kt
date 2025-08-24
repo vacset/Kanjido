@@ -70,11 +70,7 @@ fun QrPagerScreen(
                     val personTotal = split.perPerson[page]
                     val amount = personTotal.amount.setScale(2).toPlainString()
 
-                    val payload = PromptPayBuilder.build(
-                        id = event.promptPayId.orEmpty(),
-                        amountTHB = amount,
-                        reference = null
-                    )
+                    val payload = PromptPayBuilder.buildDummy()
                     val qr = QrUtil.generate(payload.content, size = 512)
 
                     Text(

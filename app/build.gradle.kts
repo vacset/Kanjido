@@ -47,6 +47,7 @@ kotlin {
 dependencies {
     // Compose BOM (main)
     implementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.junit.junit)
     // Compose BOM also for androidTest and debug (so test/tooling artifacts get versions)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(platform(libs.androidx.compose.bom))
@@ -68,9 +69,6 @@ dependencies {
     implementation(libs.zxing)
     implementation(libs.mlkit.text.recognition)
     implementation(libs.androidx.datastore.preferences)
-
-    // Unit tests
-    testImplementation(libs.junit)
 
     // Android tests
     androidTestImplementation(libs.androidx.junit)
