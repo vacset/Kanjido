@@ -1,0 +1,1 @@
+See [requirements document](docs/Bill_Splitter_Requirements_Final.docx).
