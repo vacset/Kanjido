@@ -80,6 +80,9 @@ class MainActivity : ComponentActivity() {
 
                         // Right-pane actions
                         onQuickQr = {
+                            if (vm.items.count() == 0) {
+                                vm.enterAmount()
+                            }
                             val amt = vm.totalAmount.toPlainString()
                             nav.navigate(Route.QuickQr.path(amt))
                         },
