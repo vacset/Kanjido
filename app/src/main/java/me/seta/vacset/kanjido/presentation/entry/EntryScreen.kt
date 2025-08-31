@@ -124,12 +124,19 @@ fun EntryScreen(
         ) {
             // Participants panel
             ParticipantPanel(
-                participants = participantsUi,
-                onAddParticipant = onAddParticipant,
-                onRemoveParticipant = onRemoveParticipant,
+                participants = vm.participants,
+                isAdding = vm.isAddingParticipant,
+                input = vm.participantInput,
+                suggestions = vm.participantSuggestions,
+                onStartAdd = vm::startAddParticipant,
+                onCancelAdd = vm::cancelAddParticipant,
+                onInputChange = vm::updateParticipantInput,
+                onConfirmAdd = vm::confirmAddParticipant,
+                onPickSuggestion = vm::pickSuggestion,
+                onRemoveById = vm::removeParticipantById,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
             // Two-pane layout

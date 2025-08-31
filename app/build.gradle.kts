@@ -48,6 +48,7 @@ dependencies {
     // Compose BOM (main)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.foundation)
+    implementation(libs.androidx.ui)
     testImplementation(libs.junit.junit)
     // Compose BOM also for androidTest and debug (so test/tooling artifacts get versions)
     androidTestImplementation(platform(libs.androidx.compose.bom))
