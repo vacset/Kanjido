@@ -9,6 +9,9 @@ import me.seta.vacset.kanjido.data.model.Participant
 import me.seta.vacset.kanjido.util.generateEventName
 import java.math.BigDecimal
 import java.util.UUID
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 class EventBuilderViewModel : ViewModel() {
 
@@ -20,11 +23,24 @@ class EventBuilderViewModel : ViewModel() {
         participants.add(Participant(name = name.trim()))
     }
 
+    fun removeParticipant(id: String) {
+        participants.removeAll { it.id == id }
+    }
+
     // Items (as entered from Entry screen)
     val items = mutableStateListOf<ItemDraft>()
 
+    // Calculated total amount of all items
+    val totalAmount: BigDecimal
+        get() = items.fold(BigDecimal.ZERO) { acc, itemDraft -> acc.add(itemDraft.amount) }
+
     fun addItem(amount: BigDecimal, label: String?) {
-        items.add(ItemDraft(label = label?.trim().takeUnless { it.isNullOrBlank() }, amount = amount))
+        items.add(
+            ItemDraft(
+                label = label?.trim().takeUnless { it.isNullOrBlank() },
+                amount = amount
+            )
+        )
         // TODO: add to history once the first item is entered
     }
 
@@ -69,4 +85,48 @@ class EventBuilderViewModel : ViewModel() {
         val label: String? = null,
         val amount: BigDecimal
     )
+
+    // Event name shown on EntryScreen (editable)
+    var eventName by mutableStateOf(generateEventName())
+        private set
+
+    fun updateEventName(name: String) {
+        eventName = name.ifBlank { generateEventName() }
+    }
+
+    // Numeric input currently on the left pane of EntryScreen
+    var amountText by mutableStateOf("0")
+        private set
+
+    fun clearAmount() {
+        amountText = "0"
+    }
+
+    fun backspace() {
+        amountText = amountText.dropLast(1).ifBlank { "0" }
+    }
+
+    fun pressDot() {
+        if (!amountText.contains('.')) amountText = amountText + "."
+    }
+
+    fun pressDigit(d: Int) {
+        if (d !in 0..9) return
+        amountText = if (amountText == "0") d.toString() else amountText + d.toString()
+    }
+
+    /**
+     * Confirm current amount input. You can extend this to immediately create an item.
+     * For now it only normalizes the text (no-op). */
+    fun enterAmount() {
+        // Keep as hook; if you want to auto-add: addItem(BigDecimal(normalized), label = null)
+        amountText = amountText.trim().ifBlank { "0" }
+        // no-op if 0
+        val number = BigDecimal(amountText)
+        if (number.compareTo(BigDecimal.ZERO) == 0) {
+            return
+        }
+        addItem(number, label = null)
+        clearAmount()
+    }
 }

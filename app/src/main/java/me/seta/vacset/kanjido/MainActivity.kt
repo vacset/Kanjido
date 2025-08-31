@@ -12,6 +12,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import me.seta.vacset.kanjido.presentation.state.EventBuilderViewModel
 import me.seta.vacset.kanjido.presentation.navigation.Route
 import me.seta.vacset.kanjido.presentation.entry.EntryScreen
+import me.seta.vacset.kanjido.presentation.entry.ItemUi
+import me.seta.vacset.kanjido.presentation.entry.PadKey
+import me.seta.vacset.kanjido.presentation.entry.ParticipantUi
 import me.seta.vacset.kanjido.presentation.participants.ParticipantsScreen
 import me.seta.vacset.kanjido.presentation.qr.QuickQrScreen
 import me.seta.vacset.kanjido.presentation.review.QrPagerScreen
@@ -33,15 +36,57 @@ class MainActivity : ComponentActivity() {
 
             NavHost(navController = nav, startDestination = Route.Entry.path) {
                 composable(Route.Entry.path) {
+
                     EntryScreen(
+                        // State
                         vm = vm,
-                        onNext = { nav.navigate(Route.Participants.path) },
-                        // NEW: pass a lambda that navigates to QuickQr with the amount
-                        onQuickQr = { amount ->
-                            nav.navigate(Route.QuickQr.path(amount))
-                        },
                         promptPayId = promptPayId,
-                        onOpenSettings = { nav.navigate(Route.Settings.path) }
+                        // Top-row actions
+                        onEditEventName = {
+                            // Example: quick rename without dialog
+                            // Replace with your own dialog if needed
+                            vm.updateEventName(vm.eventName) // no-op; keep hook in place
+                            // TODO: change the control to edit box with save button
+                        },
+                        onOpenHistory = {
+                            // TODO: nav to your history list when implemented
+                        },
+                        onOpenSettings = { nav.navigate(Route.Settings.path) },
+
+                        // Participants panel
+                        onAddParticipant = {
+                            // Navigate to your existing Participants screen for entry
+                            nav.navigate(Route.Participants.path)
+                        },
+                        onRemoveParticipant = { pUi ->
+                            vm.removeParticipant(pUi.id)
+                        },
+
+                        // Keypad
+                        onPadPress = { key ->
+                            when (key) {
+                                is PadKey.Digit -> vm.pressDigit(key.d)
+                                PadKey.Dot -> vm.pressDot()
+                                PadKey.Backspace -> vm.backspace()
+                                PadKey.Clear -> vm.clearAmount()
+                                PadKey.Enter -> vm.enterAmount()
+                            }
+                        },
+
+                        // Left-pane action
+                        onCaptureBill = {
+                            // Hook your receipt capture flow here
+                        },
+
+                        // Right-pane actions
+                        onQuickQr = {
+                            val amt = vm.totalAmount.toPlainString()
+                            nav.navigate(Route.QuickQr.path(amt))
+                        },
+                        onItemClick = { itemUi ->
+                            // Example: toggle assignment later, or open detail
+                            // vm.toggleAssignment(itemUi.id, participantId)
+                        }
                     )
                 }
                 composable(Route.Participants.path) {

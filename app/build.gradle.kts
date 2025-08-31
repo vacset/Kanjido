@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.zxing)
     implementation(libs.mlkit.text.recognition)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.compose.material.icons)
 
     // Android tests
     androidTestImplementation(libs.androidx.junit)
