@@ -1,5 +1,6 @@
 package me.seta.vacset.kanjido.presentation.review
 
+import android.graphics.Bitmap // Keep for qrBitmap type
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -9,7 +10,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,18 +22,18 @@ import me.seta.vacset.kanjido.domain.promptpay.PromptPayBuilder
 import me.seta.vacset.kanjido.domain.promptpay.detectPromptPayIdType
 import me.seta.vacset.kanjido.presentation.state.EventBuilderViewModel
 import me.seta.vacset.kanjido.util.QrUtil
+import me.seta.vacset.kanjido.util.ShareUtil // Added ShareUtil import
 
 @ExperimentalMaterial3Api
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun QrPagerScreen(
     vm: EventBuilderViewModel,
-    promptPayId: String?,      // Option B: saved ID passed in
+    promptPayId: String?,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
 
-    // Guard: missing ID -> toast + back
     if (promptPayId.isNullOrBlank()) {
         LaunchedEffect(promptPayId) {
             Toast.makeText(context, "You must set PromptPay ID in Preferences first", Toast.LENGTH_SHORT).show()
@@ -41,7 +41,6 @@ fun QrPagerScreen(
         }
         return
     }
-    // Guard: unsupported ID format -> toast + back
     val idType = remember(promptPayId) { detectPromptPayIdType(promptPayId) }
     if (idType == null) {
         LaunchedEffect(promptPayId) {
@@ -55,12 +54,13 @@ fun QrPagerScreen(
         return
     }
 
-    val event = vm.toEvent()              // Event no longer carries the ID
+    val event = vm.toEvent()
     val split = splitEvent(event)
-    val pages = split.perPerson.size + 1  // people pages + 1 summary
+    val pages = split.perPerson.size + 1
 
     val pagerState = rememberPagerState(pageCount = { pages })
     val scope = rememberCoroutineScope()
+    // val footerText = "Dynamic PromptPay QR (PoI=12)" // Removed
 
     Scaffold(
         topBar = {
@@ -88,7 +88,19 @@ fun QrPagerScreen(
             ) { page ->
                 if (page < split.perPerson.size) {
                     val card = split.perPerson[page]
-                    val amount = card.amount.setScale(2).toPlainString()
+                    val participantName = card.participant.name
+                    val amountStr = "Amount: ฿${card.amount.setScale(2).toPlainString()}"
+
+                    val payload = remember(promptPayId, card.amount) {
+                        PromptPayBuilder.build(
+                            PromptPayBuilder.Input(
+                                idType = idType,
+                                idValueRaw = promptPayId,
+                                amountTHB = card.amount.setScale(2)
+                            )
+                        )
+                    }
+                    val qrBitmap = remember(payload) { QrUtil.generate(payload.content, size = 512) }
 
                     Column(
                         modifier = Modifier
@@ -96,35 +108,35 @@ fun QrPagerScreen(
                             .padding(horizontal = 12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(card.participant.name, style = MaterialTheme.typography.titleLarge)
+                        Text(participantName, style = MaterialTheme.typography.titleLarge)
                         Spacer(Modifier.height(8.dp))
-                        Text("Amount: ฿$amount", style = MaterialTheme.typography.titleMedium)
+                        Text(amountStr, style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.height(16.dp))
-
-                        // Build Tag 29 (dynamic, PoI=12)
-                        val payload = remember(promptPayId, amount) {
-                            PromptPayBuilder.build(
-                                PromptPayBuilder.Input(
-                                    idType = idType,
-                                    idValueRaw = promptPayId,
-                                    amountTHB = card.amount.setScale(2)
-                                )
-                            )
-                        }
-                        val qr = remember(payload) { QrUtil.generate(payload.content, size = 512) }
-
                         Image(
-                            bitmap = qr.asImageBitmap(),
-                            contentDescription = "PromptPay QR",
+                            bitmap = qrBitmap.asImageBitmap(),
+                            contentDescription = "PromptPay QR for $participantName",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 24.dp)
                                 .height(280.dp)
                         )
-                        Spacer(Modifier.height(8.dp))
-                        Text("Dynamic PromptPay QR (PoI=12).", style = MaterialTheme.typography.bodyMedium)
+                        // Spacer(Modifier.height(8.dp)) // Static footer text removed from direct display
+                        // Text(footerText, style = MaterialTheme.typography.bodyMedium) // Removed
                         Spacer(Modifier.height(16.dp))
-                        Button(onClick = { /* TODO: share this QR bitmap */ }) { Text("Share QR") }
+                        Button(onClick = {
+                            val compositeBitmap = ShareUtil.createShareableImage(
+                                context = context,
+                                title = participantName,
+                                subtitle = amountStr,
+                                qrBitmap = qrBitmap
+                                // footer = footerText // Argument removed
+                            )
+                            ShareUtil.shareBitmap(
+                                context = context,
+                                bitmap = compositeBitmap,
+                                fileName = "${event.name}_${participantName.replace(" ", "_")}_qr_page.png"
+                            )
+                        }) { Text("Share Page") }
                     }
                 } else {
                     // Summary page
@@ -148,7 +160,9 @@ fun QrPagerScreen(
                             )
                         }
                         Spacer(Modifier.height(16.dp))
-                        Button(onClick = { /* TODO: share sheet */ }) { Text("Share Sheet") }
+                        Button(onClick = {
+                            Toast.makeText(context, "Sharing summary as an image is not yet implemented.", Toast.LENGTH_LONG).show()
+                        }) { Text("Share Sheet") }
                     }
                 }
             }

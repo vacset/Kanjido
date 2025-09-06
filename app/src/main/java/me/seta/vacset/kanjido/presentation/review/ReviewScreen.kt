@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DividerDefaults
@@ -62,6 +61,14 @@ fun ReviewScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            // "ALL" Chip
+                            FilterChip(
+                                selected = vm.selectedFor(itemDraft.id).isEmpty(),
+                                onClick = { vm.assignToAll(itemDraft.id) },
+                                label = { Text("ALL") }
+                            )
+
+                            // Individual Participant Chips
                             participants.forEach { p ->
                                 val selected = vm.selectedFor(itemDraft.id).contains(p.id)
                                 FilterChip(
@@ -69,13 +76,6 @@ fun ReviewScreen(
                                     onClick = { vm.toggleAssignment(itemDraft.id, p.id) },
                                     label = { Text(p.name) })
                             }
-                        }
-
-                        if (vm.selectedFor(itemDraft.id).isEmpty()) {
-                            Spacer(Modifier.height(6.dp))
-                            AssistChip(
-                                onClick = {},
-                                label = { Text("Currently: ALL participants") })
                         }
                     }
                 }

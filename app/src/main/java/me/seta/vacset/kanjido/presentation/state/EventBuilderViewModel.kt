@@ -208,8 +208,28 @@ class EventBuilderViewModel : ViewModel() {
     private val selectedByItemId = mutableStateMapOf<String, MutableSet<String>>()
 
     fun toggleAssignment(itemId: String, participantId: String) {
-        val set = selectedByItemId.getOrPut(itemId) { mutableSetOf() }
-        if (!set.add(participantId)) set.remove(participantId)
+        // 1. Get a copy of the current selections, or a new set if none exist.
+        val currentSelections = selectedByItemId[itemId]?.toMutableSet() ?: mutableSetOf()
+
+        // 2. Perform the toggle logic on this copy.
+        if (!currentSelections.add(participantId)) {
+            currentSelections.remove(participantId)
+        }
+
+        // 3. Update the map:
+        if (currentSelections.isEmpty()) {
+            // If the set becomes empty, remove the entry from the map.
+            // This makes it consistent with assignToAll and correctly triggers "ALL" state.
+            selectedByItemId.remove(itemId)
+        } else {
+            // Otherwise, put the modified set back into the map.
+            // This ensures a structural change that Compose will detect.
+            selectedByItemId[itemId] = currentSelections
+        }
+    }
+
+    fun assignToAll(itemId: String) { // New function
+        selectedByItemId.remove(itemId)
     }
 
     fun selectedFor(itemId: String): Set<String> = selectedByItemId[itemId] ?: emptySet()

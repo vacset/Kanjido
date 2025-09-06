@@ -1,5 +1,6 @@
 package me.seta.vacset.kanjido.presentation.qr
 
+import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -13,9 +14,8 @@ import me.seta.vacset.kanjido.domain.promptpay.PromptPayBuilder
 import me.seta.vacset.kanjido.util.QrUtil
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import me.seta.vacset.kanjido.domain.promptpay.detectPromptPayIdType
+import me.seta.vacset.kanjido.util.ShareUtil
 
 @ExperimentalMaterial3Api
 @Composable
@@ -27,7 +27,9 @@ fun QuickQrScreen(
     val context = LocalContext.current
     val parsedAmount = remember(amountTHB) { amountTHB.toBigDecimalOrNull()?.setScale(2) }
 
-    // Guard: missing amount or ID -> toast + back
+    var showRemarkDialog by remember { mutableStateOf(false) }
+    var remarkInputValue by remember { mutableStateOf("") }
+
     if (parsedAmount == null || promptPayId.isNullOrBlank()) {
         LaunchedEffect(parsedAmount, promptPayId) {
             val msg = if (parsedAmount == null) "Amount is invalid"
@@ -38,7 +40,6 @@ fun QuickQrScreen(
         return
     }
 
-    // Guard: unsupported ID format -> toast + back
     val idType = remember(promptPayId) { detectPromptPayIdType(promptPayId) }
     if (idType == null) {
         LaunchedEffect(promptPayId) {
@@ -52,7 +53,6 @@ fun QuickQrScreen(
         return
     }
 
-    // Build Tag 29 payload (dynamic → PoI=12)
     val payload = remember(promptPayId, parsedAmount, idType) {
         PromptPayBuilder.build(
             PromptPayBuilder.Input(
@@ -63,11 +63,14 @@ fun QuickQrScreen(
         )
     }
     val qrBitmap = remember(payload) { QrUtil.generate(payload.content, size = 512) }
+    val defaultScreenTitle = "Quick QR"
+    val amountTextForSharing = "Amount: ฿${parsedAmount.toPlainString()}"
+    // val footerText = "Dynamic PromptPay QR (PoI=12)" // Removed
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Quick QR") },
+                title = { Text(defaultScreenTitle) }, // TopAppBar still uses the default title
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -82,7 +85,7 @@ fun QuickQrScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            Text("Amount: ฿${parsedAmount.toPlainString()}", style = MaterialTheme.typography.titleLarge)
+            Text(amountTextForSharing, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(16.dp))
             Image(
                 bitmap = qrBitmap.asImageBitmap(),
@@ -90,12 +93,60 @@ fun QuickQrScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
-                    .height(280.dp)
+                    .height(280.dp) // This height is for display, not the QR itself
             )
-            Spacer(Modifier.height(8.dp))
-            Text("Dynamic PromptPay QR (PoI=12).", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(16.dp))
-            Button(onClick = { /* TODO: share QR */ }) { Text("Share QR") }
+            Button(onClick = {
+                showRemarkDialog = true
+            }) { Text("Share Page") }
         }
+    }
+
+    if (showRemarkDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showRemarkDialog = false
+                remarkInputValue = "" // Clear input on dismiss
+            },
+            title = { Text("Any note to payer?") },
+            text = {
+                OutlinedTextField(
+                    value = remarkInputValue,
+                    onValueChange = { remarkInputValue = it },
+                    label = { Text("Remark (optional)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showRemarkDialog = false
+                        val titleForSharing = remarkInputValue.trim().ifBlank { defaultScreenTitle }
+                        val compositeBitmap = ShareUtil.createShareableImage(
+                            context = context,
+                            title = titleForSharing,
+                            subtitle = amountTextForSharing,
+                            qrBitmap = qrBitmap
+                            // footer = footerText // Argument removed
+                        )
+                        ShareUtil.shareBitmap(
+                            context = context,
+                            bitmap = compositeBitmap,
+                            fileName = "quick_qr_page_with_remark.png"
+                        )
+                        remarkInputValue = "" // Clear input after sharing
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showRemarkDialog = false
+                        remarkInputValue = "" // Clear input on cancel
+                    }
+                ) { Text("Cancel") }
+            }
+        )
     }
 }
