@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -56,7 +57,7 @@ fun EntryScreen(
     onPadPress: (PadKey) -> Unit,
     onCaptureBill: () -> Unit,
     onQuickQr: (String) -> Unit,
-    onItemClick: (ItemUi) -> Unit,
+    onOpenReview: () -> Unit, // onItemClick removed
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -75,7 +76,7 @@ fun EntryScreen(
     val itemsUi = itemsDraft.map { d ->
         ItemUi(
             id = d.id,
-            name = d.label ?: "Item",
+            name = d.label ?: "Item", // Provide a default name if label is null
             amount = d.amount.toPlainString()
         )
     }
@@ -195,8 +196,13 @@ fun EntryScreen(
                 ) {
                     ItemListPanel(
                         items = itemsUi,
-                        onItemClick = onItemClick,
-                        onRemove = { id -> vm.removeItemById(id) },
+                        onRemove = { itemId -> vm.removeItemById(itemId) },
+                        editingItemId = vm.editingItemId,
+                        itemNameEditInput = vm.itemNameEditInput,
+                        onStartEditItemName = vm::startEditItemName,
+                        onItemNameEditInputChange = vm::onItemNameEditInputChange,
+                        onConfirmEditItemName = vm::confirmEditItemName,
+                        onCancelEditItemName = vm::cancelEditItemName,
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
@@ -211,8 +217,16 @@ fun EntryScreen(
                                     Toast.LENGTH_SHORT
                                 ).show()
                             } else {
-                                amountText.toBigDecimalOrNull()?.let { bd ->
-                                    onQuickQr(bd.setScale(2).toPlainString())
+                                // Branching rule:
+                                // - Multiple participants -> go to Review
+                                // - Otherwise -> go straight to Quick QR
+                                val participantCount = vm.participants.size
+                                if (participantCount > 1) {
+                                    onOpenReview()
+                                } else {
+                                    amountText.toBigDecimalOrNull()?.let { bd ->
+                                        onQuickQr(bd.setScale(2).toPlainString())
+                                    }
                                 }
                             }
                         },
@@ -222,7 +236,7 @@ fun EntryScreen(
                     ) {
                         Icon(Icons.Default.QrCode, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Quick QR")
+                        Text("TQRC")
                     }
                 }
             }
@@ -378,7 +392,7 @@ private fun NumericPad(
             KeyCell { KeyButton(label = ".") { onPress(PadKey.Dot) } }
         }
         KeyRow {
-            KeyCell { KeyButton(icon = Icons.Default.Backspace,
+            KeyCell { KeyButton(icon = Icons.AutoMirrored.Filled.Backspace, // Updated Icon
                 iconContentDescription = "Backspace") { onPress(PadKey.Backspace) } }
             KeyCell {
                 KeyButton(

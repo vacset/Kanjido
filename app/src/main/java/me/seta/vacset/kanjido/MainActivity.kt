@@ -84,10 +84,7 @@ class MainActivity : ComponentActivity() {
                             val amt = vm.totalAmount.toPlainString()
                             nav.navigate(Route.QuickQr.path(amt))
                         },
-                        onItemClick = { itemUi ->
-                            // Example: toggle assignment later, or open detail
-                            // vm.toggleAssignment(itemUi.id, participantId)
-                        }
+                        onOpenReview = { nav.navigate(Route.Review.path) }
                     )
                 }
                 composable(Route.Participants.path) {

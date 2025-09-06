@@ -173,6 +173,10 @@ class EventBuilderViewModel : ViewModel() {
         items.removeAll { it.id == itemId }
         // Also clear any selection mapping for this item
         selectedByItemId.remove(itemId)
+        // If the removed item was being edited, cancel the edit
+        if (itemId == editingItemId) {
+            cancelEditItemName()
+        }
     }
 
     // Build a domain Event with actual Item objects + selected tags
@@ -259,5 +263,41 @@ class EventBuilderViewModel : ViewModel() {
         }
         addItem(number, label = null)
         clearAmount()
+    }
+
+    // --- Item Name Editing State & Logic ---
+    var editingItemId by mutableStateOf<String?>(null)
+        private set
+    var itemNameEditInput by mutableStateOf("")
+        private set
+
+    fun startEditItemName(itemId: String) {
+        val item = items.find { it.id == itemId }
+        if (item != null) {
+            editingItemId = itemId
+            itemNameEditInput = item.label ?: ""
+        }
+    }
+
+    fun onItemNameEditInputChange(newName: String) {
+        itemNameEditInput = newName
+    }
+
+    fun confirmEditItemName() {
+        editingItemId?.let { idToEdit ->
+            val itemIndex = items.indexOfFirst { it.id == idToEdit }
+            if (itemIndex != -1) {
+                val oldItem = items[itemIndex]
+                val newItem = oldItem.copy(label = itemNameEditInput.trim().takeUnless { it.isBlank() })
+                items[itemIndex] = newItem // Replace the item in the list
+            }
+        }
+        editingItemId = null
+        itemNameEditInput = ""
+    }
+
+    fun cancelEditItemName() {
+        editingItemId = null
+        itemNameEditInput = ""
     }
 }
