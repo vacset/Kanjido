@@ -12,9 +12,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import me.seta.vacset.kanjido.presentation.state.EventBuilderViewModel
 import me.seta.vacset.kanjido.presentation.navigation.Route
 import me.seta.vacset.kanjido.presentation.entry.EntryScreen
-import me.seta.vacset.kanjido.presentation.entry.ItemUi
 import me.seta.vacset.kanjido.presentation.entry.PadKey
-import me.seta.vacset.kanjido.presentation.entry.ParticipantUi
 import me.seta.vacset.kanjido.presentation.participants.ParticipantsScreen
 import me.seta.vacset.kanjido.presentation.qr.QuickQrScreen
 import me.seta.vacset.kanjido.presentation.review.QrPagerScreen

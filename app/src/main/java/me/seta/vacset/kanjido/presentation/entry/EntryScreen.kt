@@ -196,6 +196,7 @@ fun EntryScreen(
                     ItemListPanel(
                         items = itemsUi,
                         onItemClick = onItemClick,
+                        onRemove = { id -> vm.removeItemById(id) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
