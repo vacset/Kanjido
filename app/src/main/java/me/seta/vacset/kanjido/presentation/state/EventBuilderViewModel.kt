@@ -168,6 +168,13 @@ class EventBuilderViewModel : ViewModel() {
         // TODO: add to history once the first item is entered
     }
 
+    fun removeItemById(itemId: String) {
+        // Remove the item
+        items.removeAll { it.id == itemId }
+        // Also clear any selection mapping for this item
+        selectedByItemId.remove(itemId)
+    }
+
     // Build a domain Event with actual Item objects + selected tags
     fun toEvent(name: String = generateEventName()): Event {
         val ps = participants.toList()
