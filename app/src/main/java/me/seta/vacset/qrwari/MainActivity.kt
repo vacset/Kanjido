@@ -14,6 +14,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import me.seta.vacset.qrwari.data.repository.EventHistoryRepository
 import me.seta.vacset.qrwari.data.storage.AppDatabase
 import me.seta.vacset.qrwari.presentation.state.EventBuilderViewModel
+import me.seta.vacset.qrwari.presentation.state.EventHistoryViewModel
 import me.seta.vacset.qrwari.presentation.navigation.Route
 import me.seta.vacset.qrwari.presentation.entry.EntryScreen
 import me.seta.vacset.qrwari.presentation.entry.PadKey
@@ -21,6 +22,7 @@ import me.seta.vacset.qrwari.presentation.participants.ParticipantsScreen
 import me.seta.vacset.qrwari.presentation.qr.QuickQrScreen
 import me.seta.vacset.qrwari.presentation.review.QrPagerScreen
 import me.seta.vacset.qrwari.presentation.review.ReviewScreen
+import me.seta.vacset.qrwari.presentation.history.HistoryScreen
 import me.seta.vacset.qrwari.presentation.settings.PromptPayViewModel
 import me.seta.vacset.qrwari.presentation.settings.SettingsScreen
 
@@ -37,6 +39,19 @@ class EventBuilderViewModelFactory(
     }
 }
 
+// Factory for EventHistoryViewModel
+@Suppress("UNCHECKED_CAST")
+class EventHistoryViewModelFactory(
+    private val eventHistoryRepository: EventHistoryRepository
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(EventHistoryViewModel::class.java)) {
+            return EventHistoryViewModel(eventHistoryRepository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
 @ExperimentalMaterial3Api
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,11 +59,14 @@ class MainActivity : ComponentActivity() {
 
         val eventHistoryRepository = initializeEventHistoryRepository()
         val eventBuilderViewModelFactory = EventBuilderViewModelFactory(eventHistoryRepository)
+        val eventHistoryViewModelFactory = EventHistoryViewModelFactory(eventHistoryRepository)
 
         setContent {
             val nav = rememberNavController()
             val vm: EventBuilderViewModel = viewModel(factory = eventBuilderViewModelFactory)
             val settingsVm: PromptPayViewModel = viewModel()
+            val historyVm: EventHistoryViewModel = viewModel(factory = eventHistoryViewModelFactory)
+
             // observe saved PromptPay ID (null if not set)
             val promptPayId = settingsVm.promptPayIdFlow.collectAsState().value
 
@@ -60,9 +78,7 @@ class MainActivity : ComponentActivity() {
                         vm = vm,
                         promptPayId = promptPayId,
                         // Top-row actions
-                        onOpenHistory = {
-                            // TODO: nav to your history list when implemented
-                        },
+                        onOpenHistory = { nav.navigate(Route.History.path) },
                         onOpenSettings = { nav.navigate(Route.Settings.path) },
 
                         // Participants panel
@@ -126,6 +142,13 @@ class MainActivity : ComponentActivity() {
                     SettingsScreen(
                         vm = settingsVm,
                         onDone = { nav.popBackStack() }
+                    )
+                }
+                composable(Route.History.path) {
+                    HistoryScreen(
+                        vm = historyVm,
+                        onBack = { nav.popBackStack() }
+                        // Pass other actions later: onClearAll, onDeleteEvent
                     )
                 }
             }

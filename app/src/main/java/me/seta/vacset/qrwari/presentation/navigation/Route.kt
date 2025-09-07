@@ -12,5 +12,6 @@ sealed class Route(val path: String) {
     data object QrPager : Route("qrpager")
 
     data object Settings : Route("settings")
+    data object History : Route("history")
 
 }

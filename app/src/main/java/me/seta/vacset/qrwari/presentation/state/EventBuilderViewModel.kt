@@ -351,4 +351,20 @@ class EventBuilderViewModel(
             // }
         }
     }
+
+    fun resetToNewEvent() {
+        currentEventDatabaseId = null // Critical for ensuring a new DB entry
+        participants.clear()
+        items.clear()
+        selectedByItemId.clear()
+        eventName = generateEventName() // Reset to a new default name
+        amountText = "0" // Reset keypad input
+
+        // Reset any UI states related to editing or adding
+        cancelEditItemName()
+        cancelAddParticipant()
+
+        // Optionally, you might want to log this or perform other cleanup
+        // For instance, if you had loaded an event to edit, this would discard changes
+    }
 }

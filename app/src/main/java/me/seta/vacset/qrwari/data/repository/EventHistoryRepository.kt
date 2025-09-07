@@ -50,6 +50,15 @@ class EventHistoryRepository(private val eventDao: EventDao) {
         return eventDao.deleteEventById(eventId)
     }
 
+    /**
+     * Deletes all events from the database.
+     *
+     * @return The total number of event rows deleted.
+     */
+    suspend fun clearAllEvents(): Int {
+        return eventDao.deleteAllEvents()
+    }
+
     // Future considerations:
     // - Expose these as Flows for reactive updates in ViewModels.
     // - Add methods for updating existing events.

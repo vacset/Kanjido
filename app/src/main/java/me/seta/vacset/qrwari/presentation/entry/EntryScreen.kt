@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.NoteAdd // Import for New Event icon
 import androidx.compose.material.icons.filled.LibraryAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -128,6 +129,9 @@ fun EntryScreen(
                                 showEditEventNameDialog = true
                             }) {
                                 Icon(Icons.Default.Edit, contentDescription = "Edit event")
+                            }
+                            IconButton(onClick = { vm.resetToNewEvent() }) { // New Event Button
+                                Icon(Icons.Outlined.NoteAdd, contentDescription = "New Event")
                             }
                             IconButton(onClick = onOpenHistory) {
                                 Icon(Icons.Default.History, contentDescription = "Event history")
