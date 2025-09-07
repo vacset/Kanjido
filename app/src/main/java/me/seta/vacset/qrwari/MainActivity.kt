@@ -17,7 +17,6 @@ import me.seta.vacset.qrwari.presentation.participants.ParticipantsScreen
 import me.seta.vacset.qrwari.presentation.qr.QuickQrScreen
 import me.seta.vacset.qrwari.presentation.review.QrPagerScreen
 import me.seta.vacset.qrwari.presentation.review.ReviewScreen
-import me.seta.vacset.qrwari.presentation.summary.SummaryScreen
 import me.seta.vacset.qrwari.presentation.settings.PromptPayViewModel
 import me.seta.vacset.qrwari.presentation.settings.SettingsScreen
 
@@ -40,7 +39,6 @@ class MainActivity : ComponentActivity() {
                         vm = vm,
                         promptPayId = promptPayId,
                         // Top-row actions
-                        // onEditEventName = { ... }, // Removed
                         onOpenHistory = {
                             // TODO: nav to your history list when implemented
                         },
@@ -90,9 +88,6 @@ class MainActivity : ComponentActivity() {
                         vm = vm,
                         promptPayId = promptPayId,
                         onBack = { nav.popBackStack() })
-                }
-                composable(Route.Summary.path) {
-                    SummaryScreen()
                 }
                 // Quick QR destination
                 composable(Route.QuickQr.path) { backStack ->
