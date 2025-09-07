@@ -23,6 +23,7 @@ import me.seta.vacset.qrwari.util.ShareUtil
 fun QuickQrScreen(
     amountTHB: String,
     promptPayId: String?,      // Option B: saved ID passed in
+    eventName: String?,        // New parameter for event name
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -64,13 +65,14 @@ fun QuickQrScreen(
         )
     }
     val qrBitmap = remember(payload) { QrUtil.generate(payload.content, size = 512) }
-    val defaultScreenTitle = "Quick QR"
+    
+    val currentScreenTitle = eventName?.takeIf { it.isNotBlank() } ?: "Quick QR"
     val amountTextForSharing = "Amount: ฿${parsedAmount.toPlainString()}"
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(defaultScreenTitle) },
+                title = { Text(currentScreenTitle) }, // Use dynamic title
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -91,7 +93,7 @@ fun QuickQrScreen(
             Spacer(Modifier.height(16.dp))
             Image(
                 bitmap = qrBitmap.asImageBitmap(),
-                contentDescription = "PromptPay QR",
+                contentDescription = "PromptPay QR for $currentScreenTitle",
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp) 
@@ -132,17 +134,22 @@ fun QuickQrScreen(
                 TextButton(
                     onClick = {
                         showRemarkDialog = false
-                        val titleForSharing = remarkInputValue.trim().ifBlank { defaultScreenTitle }
+                        val titleForSharing = remarkInputValue.trim().ifBlank { currentScreenTitle }
                         val compositeBitmap = ShareUtil.createShareableImage(
                             context = context,
                             title = titleForSharing,
                             subtitle = amountTextForSharing,
                             qrBitmap = qrBitmap
                         )
+                        
+                        val sanitizedBaseName = titleForSharing.filter { it.isLetter() || it.isDigit() }.lowercase()
+                        val finalBaseName = if (sanitizedBaseName.isNotBlank()) sanitizedBaseName else "shared_qr"
+                        val finalFileName = "qrwari_${finalBaseName}.png"
+
                         ShareUtil.shareBitmap(
                             context = context,
                             bitmap = compositeBitmap,
-                            fileName = "quick_qr_page_with_remark.png"
+                            fileName = finalFileName // Use sanitized filename
                         )
                         remarkInputValue = "" // Clear input after sharing
                     }

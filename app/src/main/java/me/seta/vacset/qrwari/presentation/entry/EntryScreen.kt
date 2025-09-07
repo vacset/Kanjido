@@ -47,7 +47,7 @@ fun EntryScreen(
     vm: EventBuilderViewModel,
     promptPayId: String?,
     // ----- Navigation / actions -----
-    onEditEventName: () -> Unit,
+    // onEditEventName: () -> Unit, // Removed
     onOpenHistory: () -> Unit,
     onOpenSettings: () -> Unit,
     onPadPress: (PadKey) -> Unit, // This is the general handler from the caller
@@ -60,6 +60,9 @@ fun EntryScreen(
     val itemsDraft = vm.items
     val amountText = vm.amountText
 
+    var showEditEventNameDialog by remember { mutableStateOf(false) }
+    var eventNameInput by remember { mutableStateOf("") }
+
     // Map domain → UI models expected by ItemListPanel
     val itemsUi = itemsDraft.map { d ->
         ItemUi(
@@ -71,6 +74,35 @@ fun EntryScreen(
     
     // Formatted total amount for ItemListPanel
     val totalAmountFormatted = "฿${vm.totalAmount.setScale(2).toPlainString()}"
+
+    if (showEditEventNameDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditEventNameDialog = false },
+            title = { Text("Edit Event Name") },
+            text = {
+                OutlinedTextField(
+                    value = eventNameInput,
+                    onValueChange = { eventNameInput = it },
+                    label = { Text("Event Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (eventNameInput.isNotBlank()) {
+                            vm.updateEventName(eventNameInput)
+                        }
+                        showEditEventNameDialog = false
+                    }
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditEventNameDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -91,7 +123,10 @@ fun EntryScreen(
                                 maxLines = 1
                             )
                             Spacer(Modifier.width(8.dp))
-                            IconButton(onClick = onEditEventName) {
+                            IconButton(onClick = {
+                                eventNameInput = vm.eventName // Pre-fill with current name
+                                showEditEventNameDialog = true
+                            }) {
                                 Icon(Icons.Default.Edit, contentDescription = "Edit event")
                             }
                             IconButton(onClick = onOpenHistory) {

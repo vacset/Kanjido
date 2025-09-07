@@ -40,12 +40,7 @@ class MainActivity : ComponentActivity() {
                         vm = vm,
                         promptPayId = promptPayId,
                         // Top-row actions
-                        onEditEventName = {
-                            // Example: quick rename without dialog
-                            // Replace with your own dialog if needed
-                            vm.updateEventName(vm.eventName) // no-op; keep hook in place
-                            // TODO: change the control to edit box with save button
-                        },
+                        // onEditEventName = { ... }, // Removed
                         onOpenHistory = {
                             // TODO: nav to your history list when implemented
                         },
@@ -76,7 +71,7 @@ class MainActivity : ComponentActivity() {
                                 vm.enterAmount()
                             }
                             val amt = vm.totalAmount.toPlainString()
-                            nav.navigate(Route.QuickQr.path(amt))
+                            nav.navigate(Route.QuickQr.path(amount = amt, eventName = vm.eventName)) // Pass eventName
                         },
                         onOpenReview = { nav.navigate(Route.Review.path) }
                     )
@@ -102,9 +97,11 @@ class MainActivity : ComponentActivity() {
                 // Quick QR destination
                 composable(Route.QuickQr.path) { backStack ->
                     val amount = backStack.arguments?.getString("amount").orEmpty()
+                    val eventName = backStack.arguments?.getString("eventName") // Extract eventName
                     QuickQrScreen(
                         amountTHB = amount,
-                        promptPayId = promptPayId,         // <— from Settings VM state
+                        promptPayId = promptPayId,
+                        eventName = eventName,         // Pass eventName to QuickQrScreen
                         onBack = { nav.popBackStack() }
                     )
                 }
