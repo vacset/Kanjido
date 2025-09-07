@@ -11,5 +11,6 @@ data class EventEntity(
     @PrimaryKey
     val id: String, // Matches Event.id (UUID string)
     val name: String,
-    val createdAt: Instant // Was Instant in Model.kt
+    val createdAt: Instant, // Was Instant in Model.kt
+    val billImageUris: List<String> = emptyList() // New field
 )

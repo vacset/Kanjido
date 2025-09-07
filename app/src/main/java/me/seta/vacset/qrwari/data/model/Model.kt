@@ -21,7 +21,8 @@ data class Event(
     val name: String,        // e.g., "16 Aug evening"
     val createdAt: Instant = Instant.now(),
     val participants: List<Participant>,
-    val items: List<Item>
+    val items: List<Item>,
+    val billImageUris: List<String> = emptyList() // New field for bill image URIs
 )
 
 data class PersonTotal(

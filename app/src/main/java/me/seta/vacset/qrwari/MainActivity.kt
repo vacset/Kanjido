@@ -98,11 +98,6 @@ class MainActivity : ComponentActivity() {
                             }
                         },
 
-                        // Left-pane action
-                        onCaptureBill = {
-                            // Hook your receipt capture flow here
-                        },
-
                         // Right-pane actions
                         onQuickQr = {
                             if (vm.items.count() == 0) {

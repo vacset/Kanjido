@@ -37,4 +37,18 @@ class StorageTypeConverters {
     fun fromStringToSetString(value: String?): Set<String>? {
         return value?.split(',')?.filter { it.isNotBlank() }?.toSet()
     }
+
+    // For List<String> used in billImageUris
+    // Using a simple comma-separated string.
+    // Ensure your URIs don't contain commas or handle encoding/decoding if they might.
+    // Storing as a JSON string array is a more robust alternative for complex strings.
+    @TypeConverter
+    fun fromStringToListString(value: String?): List<String>? {
+        return value?.split(',')?.filter { it.isNotBlank() }?.toList()
+    }
+
+    @TypeConverter
+    fun fromListStringToString(list: List<String>?): String? {
+        return list?.joinToString(",")
+    }
 }

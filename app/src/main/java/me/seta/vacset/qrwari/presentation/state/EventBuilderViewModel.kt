@@ -25,6 +25,9 @@ class EventBuilderViewModel(
     private var currentEventDatabaseId: String? = null
     // Participants
     val participants = mutableStateListOf<Participant>()
+    // Bill Images
+    val billImageUris = mutableStateListOf<String>()
+
 
     fun addParticipant(name: String) {
         if (name.isBlank()) return
@@ -209,7 +212,8 @@ class EventBuilderViewModel(
             id = id ?: currentEventDatabaseId ?: UUID.randomUUID().toString(),
             name = name.ifBlank { generateEventName() }, // Ensure name is not blank
             participants = ps,
-            items = builtItems
+            items = builtItems,
+            billImageUris = this.billImageUris.toList() // Add bill image URIs
         )
     }
 
@@ -337,21 +341,30 @@ class EventBuilderViewModel(
         val isEventNameExplicitlySet = eventName.isNotBlank() && eventName != generateEventName() // Check if different from default
         val hasItems = items.isNotEmpty()
         val hasParticipants = participants.isNotEmpty()
+        val hasBillImages = billImageUris.isNotEmpty() // Check if there are any bill images
 
-        if (isEventNameExplicitlySet && hasItems && hasParticipants) {
+        // Save if:
+        // 1. There are bill images (event can be saved with just images and a default name).
+        // OR
+        // 2. Event name is explicitly set AND there are participants OR items.
+        val shouldSave = hasBillImages || (isEventNameExplicitlySet && (hasParticipants || hasItems))
+
+        if (shouldSave) {
             // Conditions met, save or update
-            val eventToSave = toEvent() // This will use currentEventDatabaseId if available, or generate new
+            val eventToSave = toEvent()
             eventHistoryRepository.saveFullEvent(eventToSave)
             currentEventDatabaseId = eventToSave.id // Ensure we store the ID used (new or existing)
         } else {
-            // Conditions not met.
-            // If it was previously saved (currentEventDatabaseId != null) but no longer meets criteria,
-            // for now, we do nothing. The entry remains in the DB.
-            // Future: could consider deleting it or marking it as a draft if requirements change.
-            // if (currentEventDatabaseId != null) {
-            //     Log.d("EventBuilderVM", "Event ${currentEventDatabaseId} no longer meets save criteria but remains in DB.")
-            // }
+            // Conditions not met for proactive saving.
         }
+    }
+
+    fun addBillImage(uriString: String) {
+        if (uriString.isBlank()) return
+        billImageUris.add(uriString)
+        // Adding an image should always trigger a save/update.
+        // The event name can remain default if only an image is added.
+        viewModelScope.launch { attemptToSaveOrUpdateEvent() }
     }
 
     fun resetToNewEvent() {
@@ -359,6 +372,7 @@ class EventBuilderViewModel(
         participants.clear()
         items.clear()
         selectedByItemId.clear()
+        billImageUris.clear() // Clear bill images
         eventName = generateEventName() // Reset to a new default name
         amountText = "0" // Reset keypad input
 
@@ -380,6 +394,7 @@ class EventBuilderViewModel(
 
             currentEventDatabaseId = domainEvent.id
             eventName = domainEvent.name
+            billImageUris.addAll(domainEvent.billImageUris) // Load bill image URIs
 
             participants.addAll(domainEvent.participants)
 
@@ -420,7 +435,8 @@ class EventBuilderViewModel(
             name = eventDetails.event.name,
             createdAt = eventDetails.event.createdAt,
             participants = domainParticipants,
-            items = domainItems
+            items = domainItems,
+            billImageUris = eventDetails.event.billImageUris // Map from EventEntity
         )
     }
 }
