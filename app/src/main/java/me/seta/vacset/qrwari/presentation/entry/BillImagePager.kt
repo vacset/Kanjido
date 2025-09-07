@@ -1,8 +1,9 @@
 package me.seta.vacset.qrwari.presentation.entry
 
+import android.net.Uri // Added import
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+// import androidx.compose.foundation.border // No longer needed directly here for AsyncImage
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +19,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+// import androidx.compose.material3.Text // No longer needed for placeholder text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,13 +30,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.layout.ContentScale // Added import
+// import androidx.compose.ui.text.style.TextAlign // No longer needed
+// import androidx.compose.ui.text.style.TextOverflow // No longer needed
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage // Added import
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun BillImagePager( // Changed to fun (public)
+fun BillImagePager(
     imageUris: List<String>,
     modifier: Modifier = Modifier
 ) {
@@ -67,7 +70,8 @@ fun BillImagePager( // Changed to fun (public)
                                 offsetX += pan.x * scale
                                 offsetY += pan.y * scale
                                 // TODO: Add logic here to constrain offsetX and offsetY 
-                                // to prevent panning the image out of view. This requires knowing image intrinsic size vs viewport size.
+                                // to prevent panning the image out of view. This requires knowing image intrinsic size vs viewport size,
+                                // and the current scale and viewport dimensions.
                             } else {
                                 // If not zoomed (scale is 1f), reset offsets
                                 offsetX = 0f
@@ -76,45 +80,19 @@ fun BillImagePager( // Changed to fun (public)
                         }
                     }
             ) {
-                // **IMPORTANT**: Replace this Box with a proper image loading Composable (e.g., Coil's AsyncImage)
-                // The AsyncImage would have Modifier.graphicsLayer applied to it.
-                // Example with Coil:
-                // AsyncImage(
-                //     model = Uri.parse(uriString),
-                //     contentDescription = "Bill image ${pageIndex + 1}",
-                //     contentScale = ContentScale.Fit, // Fit within bounds initially for graphicsLayer to scale from
-                //     modifier = Modifier
-                //         .fillMaxSize() // Align within the Box or use appropriate alignment
-                //         .graphicsLayer(
-                //             scaleX = scale,
-                //             scaleY = scale,
-                //             translationX = offsetX,
-                //             translationY = offsetY
-                //         )
-                // )
-
-                // Current Placeholder demonstrating the structure:
-                Box(
+                AsyncImage(
+                    model = Uri.parse(uriString),
+                    contentDescription = "Bill image ${pageIndex + 1}",
+                    contentScale = ContentScale.Fit, // Fit ensures the entire image is visible initially, scaling is handled by graphicsLayer
                     modifier = Modifier
-                        .fillMaxSize() // Placeholder content fills the viewport
-                        .graphicsLayer( // Apply transformations to the placeholder
+                        .fillMaxSize() // Fill the Box, aspect ratio maintained by ContentScale.Fit
+                        .graphicsLayer(
                             scaleX = scale,
                             scaleY = scale,
                             translationX = offsetX,
                             translationY = offsetY
                         )
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(4.dp))
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Image Placeholder ${pageIndex + 1}\n(Pinch-to-Zoom enabled)\nScale: ${String.format("%.2f", scale)}\nOffset: (${String.format("%.0f", offsetX)}, ${String.format("%.0f", offsetY)})\nURI: $uriString",
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                )
             }
         }
 

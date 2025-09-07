@@ -69,6 +69,9 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
+    // Image Loading
+    implementation("io.coil-kt:coil-compose:2.7.0")
+
     // Features
     implementation(libs.zxing)
     implementation(libs.mlkit.text.recognition)
