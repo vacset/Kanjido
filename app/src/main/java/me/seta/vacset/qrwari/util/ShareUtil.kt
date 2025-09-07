@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.net.Uri
 import android.text.TextPaint
+import android.util.Log
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import java.io.File
@@ -122,6 +123,16 @@ object ShareUtil {
                 type = "image/png"
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
+// --- Start Temporary Debug Code ---
+            /*
+            val fileExists = file.exists()
+            val fileLength = file.length()
+            val uriString = contentUri.toString()
+            val debugMessage = "URI: $uriString\\nFile exists: $fileExists, Length: $fileLength bytes"
+            Log.d("ShareUtilDebug", debugMessage) // Add this for Logcat
+            Toast.makeText(context, debugMessage, Toast.LENGTH_LONG).show() // Add this for on-screen
+             */
+// --- End Temporary Debug Code ---
             context.startActivity(Intent.createChooser(shareIntent, shareTitleDialog))
         } catch (e: Exception) {
             Toast.makeText(context, "Error sharing image: ${e.message}", Toast.LENGTH_SHORT).show()
