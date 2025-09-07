@@ -359,11 +359,20 @@ class EventBuilderViewModel(
         }
     }
 
-    fun addBillImage(uriString: String) {
+    // Renamed for clarity, or keep as addBillImage if it's the sole public entry point for single images
+    fun addSingleBillImageAndSave(uriString: String) { 
         if (uriString.isBlank()) return
         billImageUris.add(uriString)
-        // Adding an image should always trigger a save/update.
-        // The event name can remain default if only an image is added.
+        viewModelScope.launch { attemptToSaveOrUpdateEvent() }
+    }
+
+    // New function for batch processing from image picker
+    fun addMultipleBillImagesAndSave(uriStrings: List<String>) {
+        val validUris = uriStrings.filter { !it.isBlank() }
+        if (validUris.isEmpty()) return
+
+        billImageUris.addAll(validUris)
+        // Only trigger a save if we actually added something
         viewModelScope.launch { attemptToSaveOrUpdateEvent() }
     }
 

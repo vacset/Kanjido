@@ -23,7 +23,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+// import androidx.compose.ui.draw.clip // No longer needed for BillImagePager directly here
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -50,12 +50,11 @@ fun EntryScreen(
     vm: EventBuilderViewModel,
     promptPayId: String?,
     // ----- Navigation / actions -----
-    // onEditEventName: () -> Unit, // Removed
     onOpenHistory: () -> Unit,
     onOpenSettings: () -> Unit,
     onPadPress: (PadKey) -> Unit,
     onQuickQr: (String) -> Unit,
-    onOpenReview: () -> Unit, // onItemClick removed
+    onOpenReview: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -67,18 +66,20 @@ fun EntryScreen(
         contract = ActivityResultContracts.GetMultipleContents(),
         onResult = { uris: List<Uri> ->
             if (uris.isNotEmpty()) {
+                val uriStrings = mutableListOf<String>()
                 uris.forEach { uri ->
-                    // Take persistable URI permission for long-term access
                     try {
                         context.contentResolver.takePersistableUriPermission(
                             uri,
                             Intent.FLAG_GRANT_READ_URI_PERMISSION
                         )
-                        vm.addBillImage(uri.toString())
+                        uriStrings.add(uri.toString())
                     } catch (e: SecurityException) {
-                        Toast.makeText(context, "Failed to get permission for image: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                        // Optionally log e
+                        Toast.makeText(context, "Failed to get permission for image: $uri: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                     }
+                }
+                if (uriStrings.isNotEmpty()) {
+                    vm.addMultipleBillImagesAndSave(uriStrings) // Use new ViewModel function
                 }
             }
         }
@@ -87,16 +88,14 @@ fun EntryScreen(
     var showEditEventNameDialog by remember { mutableStateOf(false) }
     var eventNameInput by remember { mutableStateOf("") }
 
-    // Map domain → UI models expected by ItemListPanel
     val itemsUi = itemsDraft.map { d ->
         ItemUi(
             id = d.id,
-            name = d.label, // Name is now nullable, pass label directly
-            amount = "฿${d.amount.setScale(2).toPlainString()}" // Add currency symbol to individual items as well
+            name = d.label,
+            amount = "฿${d.amount.setScale(2).toPlainString()}"
         )
     }
     
-    // Formatted total amount for ItemListPanel
     val totalAmountFormatted = "฿${vm.totalAmount.setScale(2).toPlainString()}"
 
     if (showEditEventNameDialog) {
@@ -136,7 +135,6 @@ fun EntryScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // Left: Event name + edit + history
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.weight(1f)
@@ -148,20 +146,18 @@ fun EntryScreen(
                             )
                             Spacer(Modifier.width(8.dp))
                             IconButton(onClick = {
-                                eventNameInput = vm.eventName // Pre-fill with current name
+                                eventNameInput = vm.eventName
                                 showEditEventNameDialog = true
                             }) {
                                 Icon(Icons.Default.Edit, contentDescription = "Edit event")
                             }
-                            IconButton(onClick = { vm.resetToNewEvent() }) { // New Event Button
+                            IconButton(onClick = { vm.resetToNewEvent() }) {
                                 Icon(Icons.Outlined.NoteAdd, contentDescription = "New Event")
                             }
                             IconButton(onClick = onOpenHistory) {
                                 Icon(Icons.Default.History, contentDescription = "Event history")
                             }
                         }
-
-                        // Right: Settings
                         IconButton(onClick = onOpenSettings) {
                             Icon(Icons.Default.Settings, contentDescription = "Settings")
                         }
@@ -176,9 +172,8 @@ fun EntryScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            // Participants panel
             ParticipantPanel(
-                participants = vm.participants, // This is List<DomainParticipant> from ViewModel
+                participants = vm.participants,
                 isAdding = vm.isAddingParticipant,
                 input = vm.participantInput,
                 suggestions = vm.participantSuggestions,
@@ -190,10 +185,9 @@ fun EntryScreen(
                 onRemoveById = vm::removeParticipantById,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp) // Adjusted padding for consistency
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
-            // Two-pane layout
             Row(
                 modifier = Modifier
                     .fillMaxSize(),
@@ -208,7 +202,7 @@ fun EntryScreen(
                             BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                             RoundedCornerShape(16.dp)
                         )
-                        .padding(12.dp),
+                        .padding(4.dp), // Reduced padding here
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     AmountDisplay(
@@ -219,10 +213,10 @@ fun EntryScreen(
                     )
 
                     NumericPad(
-                        onPress = { padKey -> // Modified to handle Negate locally
+                        onPress = { padKey ->
                             when (padKey) {
                                 PadKey.Negate -> vm.negateAmount()
-                                else -> onPadPress(padKey) // Delegate other keys to the original handler
+                                else -> onPadPress(padKey)
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -239,15 +233,14 @@ fun EntryScreen(
                         Text("Capture bill")
                     }
 
-                    // Bill Image Pager - only shown if there are images
                     if (billImageUris.isNotEmpty()) {
-                        Spacer(Modifier.height(8.dp)) // Add some space above the pager
+                        Spacer(Modifier.height(8.dp))
                         BillImagePager(
                             imageUris = billImageUris,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f) // Allow pager to take available space
-                                .clip(RoundedCornerShape(12.dp)) // Clip the pager area
+                                // .clip(RoundedCornerShape(12.dp)) // Removed clip from here
                         )
                     }
                 }
@@ -266,7 +259,7 @@ fun EntryScreen(
                 ) {
                     ItemListPanel(
                         items = itemsUi,
-                        totalAmountFormatted = totalAmountFormatted, // Pass the formatted total
+                        totalAmountFormatted = totalAmountFormatted,
                         onRemove = { itemId -> vm.removeItemById(itemId) },
                         editingItemId = vm.editingItemId,
                         itemNameEditInput = vm.itemNameEditInput,
@@ -281,7 +274,7 @@ fun EntryScreen(
 
                     FilledTonalButton(
                         onClick = {
-                            val totalBillAmount = vm.totalAmount // Get total from ViewModel
+                            val totalBillAmount = vm.totalAmount
                             when {
                                 totalBillAmount < BigDecimal.ZERO -> {
                                     Toast.makeText(context, "Total value is negative", Toast.LENGTH_SHORT).show()
@@ -298,7 +291,6 @@ fun EntryScreen(
                                     if (participantCount > 1) {
                                         onOpenReview()
                                     } else {
-                                        // Use totalBillAmount for QR, not amountText
                                         onQuickQr(totalBillAmount.setScale(2).toPlainString())
                                     }
                                 }
@@ -323,13 +315,13 @@ fun EntryScreen(
 data class ParticipantUi(
     val id: String,
     val name: String,
-    val colorSeed: Int? = null, // if you color-code chips
+    val colorSeed: Int? = null,
 )
 
 data class ItemUi(
     val id: String,
-    val name: String?, // Name is now nullable
-    val amount: String, // Expects formatted amount (e.g., "฿123.45")
+    val name: String?,
+    val amount: String,
     val byParticipantIds: List<String> = emptyList()
 )
 

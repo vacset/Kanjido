@@ -12,7 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable 
-import androidx.compose.runtime.LaunchedEffect // Ensure this import is present
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,12 +24,13 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
+// import androidx.compose.ui.tooling.preview.Preview // No longer needed
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle // Ensure this import is present
-import me.seta.vacset.qrwari.data.repository.EventHistoryRepository
-import me.seta.vacset.qrwari.data.storage.EventDao
-import me.seta.vacset.qrwari.data.storage.EventEntity
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+// Unused imports related to Preview code, remove if not used elsewhere in this file after Preview removal.
+// import me.seta.vacset.qrwari.data.repository.EventHistoryRepository
+// import me.seta.vacset.qrwari.data.storage.EventDao
+// import me.seta.vacset.qrwari.data.storage.EventEntity
 import me.seta.vacset.qrwari.presentation.state.EventHistoryItemUiState
 import me.seta.vacset.qrwari.presentation.state.EventHistoryViewModel
 
@@ -40,14 +41,13 @@ private val HistoryItemCardShape = RoundedCornerShape(12.dp)
 fun HistoryScreen(
     vm: EventHistoryViewModel,
     onBack: () -> Unit,
-    onEventSelected: (eventId: String) -> Unit, // New callback
+    onEventSelected: (eventId: String) -> Unit,
 ) {
     
-    // Use LaunchedEffect to load data when the screen enters composition or recomposes
     LaunchedEffect(Unit) {
         vm.loadEventHistory()
     }
-    val eventHistoryList by vm.eventHistory.collectAsStateWithLifecycle() // Use lifecycle-aware collector
+    val eventHistoryList by vm.eventHistory.collectAsStateWithLifecycle()
     var showClearAllDialog by remember { mutableStateOf(false) }
 
     if (showClearAllDialog) {
@@ -134,7 +134,7 @@ fun HistoryScreen(
                             content = {
                                 EventHistoryItemCard(
                                     item = eventItem,
-                                    onClick = { onEventSelected(eventItem.id) } // Pass the click up
+                                    onClick = { onEventSelected(eventItem.id) }
                                 )
                             }
                         )
@@ -207,12 +207,12 @@ private fun HistoryDismissBackground(
 @Composable
 fun EventHistoryItemCard(
     item: EventHistoryItemUiState,
-    onClick: () -> Unit // New onClick parameter
+    onClick: () -> Unit
 ) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = HistoryItemCardShape,
-        onClick = onClick // Make the card clickable
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier
@@ -238,57 +238,5 @@ fun EventHistoryItemCard(
     }
 }
 
-// --- Previews ---
-
-private val previewDummyEventItems = List(3) { index ->
-    EventHistoryItemUiState(
-        id = "id_preview_$index",
-        name = "Preview Event Title ${index + 1}",
-        creationDateTimeFormatted = "0${index + 1} Jan 2024, 10:0${index} AM"
-    )
-}
-
-private class FakeEventDaoPreview : EventDao {
-    override suspend fun insertFullEvent(domainEvent: me.seta.vacset.qrwari.data.model.Event) = Unit
-    override suspend fun insertEvent(event: EventEntity): Long = 0L
-    override suspend fun insertParticipants(participants: List<me.seta.vacset.qrwari.data.storage.ParticipantEntity>) = Unit
-    override suspend fun insertItems(items: List<me.seta.vacset.qrwari.data.storage.ItemEntity>) = Unit
-    override suspend fun insertEventParticipantCrossRefs(crossRefs: List<me.seta.vacset.qrwari.data.storage.EventParticipantCrossRef>) = Unit
-    override suspend fun getEventWithDetails(eventId: String): me.seta.vacset.qrwari.data.storage.EventWithDetails? = null
-    override suspend fun getAllEventsWithDetails(): List<me.seta.vacset.qrwari.data.storage.EventWithDetails> = emptyList()
-    override suspend fun getAllEventEntities(): List<EventEntity> = emptyList()
-    override suspend fun deleteEventById(eventId: String): Int = 0
-    override suspend fun deleteAllEvents(): Int = 0
-}
-
-private fun createPreviewHistoryViewModel(): EventHistoryViewModel {
-    val fakeRepo = EventHistoryRepository(FakeEventDaoPreview())
-    return EventHistoryViewModel(fakeRepo)
-}
-
-@Preview(showBackground = true, name = "History Screen - Empty")
-@Composable
-fun HistoryScreenEmptyPreview() {
-    val previewVm = remember { createPreviewHistoryViewModel() }
-    MaterialTheme {
-        HistoryScreen(vm = previewVm, onBack = {}, onEventSelected = {})
-    }
-}
-
-@Preview(showBackground = true, name = "Event History Item Card")
-@Composable
-fun EventHistoryItemCardPreview() {
-    MaterialTheme {
-        EventHistoryItemCard(item = previewDummyEventItems.first(), onClick = {})
-    }
-}
-
-@Preview(showBackground = true, name = "History Screen - Populated (Shows Empty)")
-@Composable
-fun HistoryScreenPopulatedPreviewShowsEmpty() {
-     val previewVm = remember { createPreviewHistoryViewModel() }
-    MaterialTheme {
-        HistoryScreen(vm = previewVm, onBack = {}, onEventSelected = {})
-    }
-}
+// --- Previews removed ---
 

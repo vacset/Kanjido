@@ -16,39 +16,36 @@ class StorageTypeConverters {
     }
 
     @TypeConverter
-    fun fromBigDecimalString(value: String?): BigDecimal? {
+    fun fromBigDecimal(value: String?): BigDecimal? {
         return value?.let { BigDecimal(it) }
     }
 
     @TypeConverter
-    fun bigDecimalToString(value: BigDecimal?): String? {
-        return value?.toPlainString()
+    fun bigDecimalToString(bigDecimal: BigDecimal?): String? {
+        return bigDecimal?.toPlainString()
     }
 
-    // Using a simple comma-separated string for Set<String>.
-    // Ensure your participant IDs don't contain commas.
-    // If they might, or for more robustness, storing as a JSON string is better.
+    // Converter for Set<String> (e.g., for taggedParticipantIds in ItemEntity)
     @TypeConverter
-    fun fromStringSetToString(value: Set<String>?): String? {
-        return value?.joinToString(",")
-    }
-
-    @TypeConverter
-    fun fromStringToSetString(value: String?): Set<String>? {
-        return value?.split(',')?.filter { it.isNotBlank() }?.toSet()
-    }
-
-    // For List<String> used in billImageUris
-    // Using a simple comma-separated string.
-    // Ensure your URIs don't contain commas or handle encoding/decoding if they might.
-    // Storing as a JSON string array is a more robust alternative for complex strings.
-    @TypeConverter
-    fun fromStringToListString(value: String?): List<String>? {
-        return value?.split(',')?.filter { it.isNotBlank() }?.toList()
+    fun fromStringSet(value: String?): Set<String>? {
+        // Splits by comma, trims whitespace, filters out empty strings that might result from trailing commas or multiple commas
+        return value?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }?.toSet()
     }
 
     @TypeConverter
-    fun fromListStringToString(list: List<String>?): String? {
+    fun stringSetToString(set: Set<String>?): String? {
+        return set?.joinToString(",")
+    }
+
+    // --- Converters for List<String> for billImageUris ---
+    @TypeConverter
+    fun fromStringList(value: String?): List<String>? {
+        // Splits by comma, trims whitespace, filters out empty strings
+        return value?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
+    }
+
+    @TypeConverter
+    fun stringListToString(list: List<String>?): String? {
         return list?.joinToString(",")
     }
 }

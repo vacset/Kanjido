@@ -13,7 +13,7 @@ import androidx.room.TypeConverters
         ParticipantEntity::class,
         EventParticipantCrossRef::class
     ],
-    version = 1,
+    version = 2, // Incremented version to 2
     exportSchema = false // Recommended to set to true for production apps for schema migration history
 )
 @TypeConverters(StorageTypeConverters::class)
@@ -34,7 +34,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "qrwari_database"
                 )
                 // Wipes and rebuilds instead of migrating if no Migration object.
-                .fallbackToDestructiveMigration() // Enabled as per your request
+                .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance
                 instance

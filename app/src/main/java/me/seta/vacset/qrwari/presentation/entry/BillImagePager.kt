@@ -1,9 +1,8 @@
 package me.seta.vacset.qrwari.presentation.entry
 
-import android.net.Uri // Added import
+import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-// import androidx.compose.foundation.border // No longer needed directly here for AsyncImage
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,24 +16,29 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+// import androidx.compose.foundation.shape.RoundedCornerShape // No longer needed here for image clipping
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-// import androidx.compose.material3.Text // No longer needed for placeholder text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clip // Still needed for dot indicators
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale // Added import
-// import androidx.compose.ui.text.style.TextAlign // No longer needed
-// import androidx.compose.ui.text.style.TextOverflow // No longer needed
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage // Added import
+import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -43,65 +47,106 @@ fun BillImagePager(
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(pageCount = { imageUris.size })
+    val scope = rememberCoroutineScope()
 
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .weight(1f) // Pager takes available vertical space in its Column
-                .fillMaxWidth()
-        ) { pageIndex ->
-            val uriString = imageUris[pageIndex]
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) { // Outer box to contain pager and arrows
+            HorizontalPager(
+                state = pagerState,
+                userScrollEnabled = false, // Disable swipe navigation
+                modifier = Modifier.fillMaxSize() // Pager fills the Box
+            ) { pageIndex ->
+                val uriString = imageUris[pageIndex]
 
-            // State for zoom and pan, keyed to the image URI to reset on page change
-            var scale by remember(uriString) { mutableStateOf(1f) }
-            var offsetX by remember(uriString) { mutableStateOf(0f) }
-            var offsetY by remember(uriString) { mutableStateOf(0f) }
+                var scale by remember(uriString) { mutableStateOf(1f) }
+                var offsetX by remember(uriString) { mutableStateOf(0f) }
+                var offsetY by remember(uriString) { mutableStateOf(0f) }
 
-            Box( // This Box acts as the viewport and gesture detector for each page
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(8.dp)) // Clip the content
-                    .pointerInput(uriString) { // Key pointerInput to uriString to reset gesture state if needed
-                        detectTransformGestures { centroid, pan, zoom, rotation ->
-                            scale = (scale * zoom).coerceIn(1f, 3f) // Min 1x, Max 3x zoom
+                Box( // This Box is for gesture detection for the image
+                    modifier = Modifier
+                        .fillMaxSize()
+                        // .clip(RoundedCornerShape(8.dp)) // Removed internal clip
+                        .pointerInput(uriString) {
+                            detectTransformGestures { centroid, pan, zoom, rotation ->
+                                scale = (scale * zoom).coerceIn(1f, 3f)
 
-                            if (scale > 1f) { // Allow panning only when zoomed
-                                offsetX += pan.x * scale
-                                offsetY += pan.y * scale
-                                // TODO: Add logic here to constrain offsetX and offsetY 
-                                // to prevent panning the image out of view. This requires knowing image intrinsic size vs viewport size,
-                                // and the current scale and viewport dimensions.
-                            } else {
-                                // If not zoomed (scale is 1f), reset offsets
-                                offsetX = 0f
-                                offsetY = 0f
+                                if (scale > 1f) {
+                                    offsetX += pan.x * scale
+                                    offsetY += pan.y * scale
+                                    // TODO: Add logic here to constrain offsetX and offsetY
+                                } else {
+                                    offsetX = 0f
+                                    offsetY = 0f
+                                }
                             }
                         }
-                    }
-            ) {
-                AsyncImage(
-                    model = Uri.parse(uriString),
-                    contentDescription = "Bill image ${pageIndex + 1}",
-                    contentScale = ContentScale.Fit, // Fit ensures the entire image is visible initially, scaling is handled by graphicsLayer
+                ) {
+                    AsyncImage(
+                        model = Uri.parse(uriString),
+                        contentDescription = "Bill image ${pageIndex + 1}",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer(
+                                scaleX = scale,
+                                scaleY = scale,
+                                translationX = offsetX,
+                                translationY = offsetY
+                            )
+                    )
+                }
+            }
+
+            // Previous Button
+            if (pagerState.pageCount > 1 && pagerState.currentPage > 0) {
+                IconButton(
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                        }
+                    },
                     modifier = Modifier
-                        .fillMaxSize() // Fill the Box, aspect ratio maintained by ContentScale.Fit
-                        .graphicsLayer(
-                            scaleX = scale,
-                            scaleY = scale,
-                            translationX = offsetX,
-                            translationY = offsetY
-                        )
-                )
+                        .align(Alignment.CenterStart)
+                        .padding(4.dp) // Reduced padding
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                        contentDescription = "Previous image",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            // Next Button
+            if (pagerState.pageCount > 1 && pagerState.currentPage < pagerState.pageCount - 1) {
+                IconButton(
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(4.dp) // Reduced padding
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = "Next image",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
 
+        // Pager dots (Indicator)
         if (pagerState.pageCount > 1) {
             Row(
                 Modifier
                     .height(20.dp) // Height for the row of indicators
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(top = 4.dp), // Reduced padding
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
