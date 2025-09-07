@@ -15,6 +15,7 @@ import me.seta.vacset.qrwari.util.QrUtil
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share // Added import for Share icon
+import me.seta.vacset.qrwari.R
 import me.seta.vacset.qrwari.domain.promptpay.detectPromptPayIdType
 import me.seta.vacset.qrwari.util.ShareUtil
 
@@ -96,7 +97,7 @@ fun QuickQrScreen(
                 contentDescription = "PromptPay QR for $currentScreenTitle",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp) 
+                    .padding(horizontal = 24.dp)
                     .height(280.dp) 
             )
             Spacer(Modifier.height(16.dp))
@@ -143,8 +144,8 @@ fun QuickQrScreen(
                         )
                         
                         val sanitizedBaseName = titleForSharing.filter { it.isLetter() || it.isDigit() }.lowercase()
-                        val finalBaseName = if (sanitizedBaseName.isNotBlank()) sanitizedBaseName else "shared_qr"
-                        val finalFileName = "qrwari_${finalBaseName}.png"
+                        val finalBaseName = sanitizedBaseName.ifBlank { "shared_qr" }
+                        val finalFileName = context.getString(R.string.qrwari_png, finalBaseName)
 
                         ShareUtil.shareBitmap(
                             context = context,

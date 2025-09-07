@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">qrwari</string>
+    <string name="qrwari_png">qrwari_%1$s.png</string>
 </resources>
