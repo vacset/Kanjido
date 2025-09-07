@@ -8,6 +8,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share // Added import
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,7 +22,7 @@ import me.seta.vacset.qrwari.domain.promptpay.PromptPayBuilder
 import me.seta.vacset.qrwari.domain.promptpay.detectPromptPayIdType
 import me.seta.vacset.qrwari.presentation.state.EventBuilderViewModel
 import me.seta.vacset.qrwari.util.QrUtil
-import me.seta.vacset.qrwari.util.ShareUtil // Added ShareUtil import
+import me.seta.vacset.qrwari.util.ShareUtil
 
 @ExperimentalMaterial3Api
 @OptIn(ExperimentalFoundationApi::class)
@@ -59,7 +60,6 @@ fun QrPagerScreen(
 
     val pagerState = rememberPagerState(pageCount = { pages })
     val scope = rememberCoroutineScope()
-    // val footerText = "Dynamic PromptPay QR (PoI=12)" // Removed
 
     Scaffold(
         topBar = {
@@ -105,6 +105,7 @@ fun QrPagerScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 12.dp),
+                        verticalArrangement = Arrangement.Center, // Added for vertical centering
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(participantName, style = MaterialTheme.typography.titleLarge)
@@ -119,8 +120,6 @@ fun QrPagerScreen(
                                 .padding(horizontal = 24.dp)
                                 .height(280.dp)
                         )
-                        // Spacer(Modifier.height(8.dp)) // Static footer text removed from direct display
-                        // Text(footerText, style = MaterialTheme.typography.bodyMedium) // Removed
                         Spacer(Modifier.height(16.dp))
                         Button(onClick = {
                             val compositeBitmap = ShareUtil.createShareableImage(
@@ -128,14 +127,21 @@ fun QrPagerScreen(
                                 title = participantName,
                                 subtitle = amountStr,
                                 qrBitmap = qrBitmap
-                                // footer = footerText // Argument removed
                             )
                             ShareUtil.shareBitmap(
                                 context = context,
                                 bitmap = compositeBitmap,
                                 fileName = "${event.name}_${participantName.replace(" ", "_")}_qr_page.png"
                             )
-                        }) { Text("Share Page") }
+                        }) { 
+                            Icon(
+                                Icons.Filled.Share,
+                                contentDescription = "Share Page",
+                                modifier = Modifier.size(ButtonDefaults.IconSize)
+                            )
+                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                            Text("Share Page") 
+                        }
                     }
                 } else {
                     // Summary page
@@ -143,6 +149,9 @@ fun QrPagerScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 12.dp)
+                        // Consider centering this content as well if desired
+                        // verticalArrangement = Arrangement.Center,
+                        // horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text("Summary", style = MaterialTheme.typography.titleLarge)
                         Spacer(Modifier.height(8.dp))

@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -13,6 +14,7 @@ import me.seta.vacset.qrwari.domain.promptpay.PromptPayBuilder
 import me.seta.vacset.qrwari.util.QrUtil
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share // Added import for Share icon
 import me.seta.vacset.qrwari.domain.promptpay.detectPromptPayIdType
 import me.seta.vacset.qrwari.util.ShareUtil
 
@@ -64,12 +66,11 @@ fun QuickQrScreen(
     val qrBitmap = remember(payload) { QrUtil.generate(payload.content, size = 512) }
     val defaultScreenTitle = "Quick QR"
     val amountTextForSharing = "Amount: ฿${parsedAmount.toPlainString()}"
-    // val footerText = "Dynamic PromptPay QR (PoI=12)" // Removed
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(defaultScreenTitle) }, // TopAppBar still uses the default title
+                title = { Text(defaultScreenTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -79,10 +80,12 @@ fun QuickQrScreen(
         }
     ) { padding ->
         Column(
-            Modifier
+            modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(amountTextForSharing, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(16.dp))
@@ -91,13 +94,21 @@ fun QuickQrScreen(
                 contentDescription = "PromptPay QR",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .height(280.dp) // This height is for display, not the QR itself
+                    .padding(horizontal = 24.dp) 
+                    .height(280.dp) 
             )
             Spacer(Modifier.height(16.dp))
             Button(onClick = {
                 showRemarkDialog = true
-            }) { Text("Share Page") }
+            }) { 
+                Icon(
+                    Icons.Filled.Share,
+                    contentDescription = "Share",
+                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                )
+                Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                Text("Share Page") 
+            }
         }
     }
 
@@ -127,7 +138,6 @@ fun QuickQrScreen(
                             title = titleForSharing,
                             subtitle = amountTextForSharing,
                             qrBitmap = qrBitmap
-                            // footer = footerText // Argument removed
                         )
                         ShareUtil.shareBitmap(
                             context = context,

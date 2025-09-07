@@ -37,7 +37,7 @@ import java.math.BigDecimal
  * - Participants row beneath top bar: chips + add chip.
  * - Body is a Row (always side-by-side on phones too):
  *    Left pane: Amount display, numeric pad, "Capture bill" button
- *    Right pane: Item list, "Quick QR" button
+ *    Right pane: Item list, "TQRC" button
  *
  */
 
@@ -57,14 +57,6 @@ fun EntryScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    // val participantsDomain = vm.participants // vm.participants is used directly
-    // Unused variable removed:
-    // val participantsUi = participantsDomain.map { p ->
-    //     ParticipantUi(
-    //         id = p.id,
-    //         name = p.name
-    //     )
-    // }
     val itemsDraft = vm.items
     val amountText = vm.amountText
 

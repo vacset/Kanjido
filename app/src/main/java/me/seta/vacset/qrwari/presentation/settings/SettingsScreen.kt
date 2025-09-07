@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import me.seta.vacset.qrwari.domain.promptpay.detectPromptPayIdType
 
 @ExperimentalMaterial3Api
 @Composable
@@ -16,6 +17,11 @@ fun SettingsScreen(
 ) {
     val currentId = vm.promptPayIdFlow.collectAsState().value ?: ""
     var localId by remember(currentId) { mutableStateOf(currentId) }
+
+    val isIdValid = remember(localId) { 
+        localId.isBlank() || detectPromptPayIdType(localId) != null 
+    }
+    val showError = localId.isNotBlank() && !isIdValid
 
     Scaffold(
         topBar = {
@@ -35,30 +41,34 @@ fun SettingsScreen(
             OutlinedTextField(
                 value = localId,
                 onValueChange = { localId = it },
-                label = { Text("Phone / National ID / Bank Account") },
+                label = { Text("Phone / National ID") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Ascii
                 ),
-                singleLine = true
+                singleLine = true,
+                isError = showError,
+                supportingText = {
+                    Box(modifier = Modifier.heightIn(min = 48.dp)) { // Ensure consistent height
+                        if (showError) {
+                            Text("Invalid ID format. Use phone (e.g., 08xxxxxxxx) or 13-digit National ID.")
+                        } else {
+                            Text("Enter your Phone number (e.g., 08xxxxxxxx) or 13-digit National ID.")
+                        }
+                    }
+                }
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // TODO: add validation by calling isValidThaiNationalId before save button enabled
                 Button(
                     onClick = {
+                        // The button is only enabled if isIdValid and localId is not blank
                         vm.setPromptPayId(localId)
                         onDone()
                     },
-                    enabled = localId.isNotBlank()
+                    enabled = localId.isNotBlank() && isIdValid 
                 ) { Text("Save") }
                 OutlinedButton(onClick = onDone) { Text("Cancel") }
             }
-            AssistChip(
-                onClick = {
-                    // Minimal hint only; validation is handled later by the QR builder
-                },
-                label = { Text("Tip: phone (08....) or citizen id only") }
-            )
         }
     }
 }
