@@ -3,18 +3,24 @@ package me.seta.vacset.qrwari.presentation.state
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import me.seta.vacset.qrwari.data.model.Event
 import me.seta.vacset.qrwari.data.model.Item
 import me.seta.vacset.qrwari.data.model.Participant
+import me.seta.vacset.qrwari.data.repository.EventHistoryRepository
 import me.seta.vacset.qrwari.util.generateEventName
 import java.math.BigDecimal
 import java.util.UUID
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 
-class EventBuilderViewModel : ViewModel() {
+class EventBuilderViewModel(
+    private val eventHistoryRepository: EventHistoryRepository
+) : ViewModel() {
 
+    private var currentEventDatabaseId: String? = null
     // Participants
     val participants = mutableStateListOf<Participant>()
 
@@ -76,6 +82,7 @@ class EventBuilderViewModel : ViewModel() {
         bumpFreq(name)
         recordCoOccurrence(name, participants.map { it.name }.toSet())
         participantInput = ""
+        viewModelScope.launch { attemptToSaveOrUpdateEvent() }
         isAddingParticipant = false
         refreshParticipantSuggestions()
     }
@@ -165,6 +172,7 @@ class EventBuilderViewModel : ViewModel() {
                 amount = amount
             )
         )
+        viewModelScope.launch { attemptToSaveOrUpdateEvent() }
     }
 
     fun removeItemById(itemId: String) {
@@ -173,9 +181,13 @@ class EventBuilderViewModel : ViewModel() {
         if (itemId == editingItemId) {
             cancelEditItemName()
         }
+        // If removing an item causes the event to no longer meet save criteria,
+        // and it was previously saved, it will still exist in the DB.
+        // Subsequent valid changes will update it.
+        // viewModelScope.launch { attemptToSaveOrUpdateEvent() } // Optional: re-evaluate save
     }
 
-    fun toEvent(name: String = generateEventName()): Event {
+    fun toEvent(id: String? = null, name: String = eventName): Event {
         val ps = participants.toList()
         val idSetAll = ps.map { it.id }.toSet()
         val builtItems = items.map { draft ->
@@ -192,7 +204,8 @@ class EventBuilderViewModel : ViewModel() {
             )
         }
         return Event(
-            name = name,
+            id = id ?: currentEventDatabaseId ?: UUID.randomUUID().toString(),
+            name = name.ifBlank { generateEventName() }, // Ensure name is not blank
             participants = ps,
             items = builtItems
         )
@@ -229,6 +242,7 @@ class EventBuilderViewModel : ViewModel() {
 
     fun updateEventName(name: String) {
         eventName = name.ifBlank { generateEventName() }
+        viewModelScope.launch { attemptToSaveOrUpdateEvent() }
     }
 
     var amountText by mutableStateOf("0")
@@ -306,6 +320,7 @@ class EventBuilderViewModel : ViewModel() {
                 val newItem = oldItem.copy(label = itemNameEditInput.trim().takeUnless { it.isBlank() })
                 items[itemIndex] = newItem
             }
+            viewModelScope.launch { attemptToSaveOrUpdateEvent() }
         }
         editingItemId = null
         itemNameEditInput = ""
@@ -314,5 +329,26 @@ class EventBuilderViewModel : ViewModel() {
     fun cancelEditItemName() {
         editingItemId = null
         itemNameEditInput = ""
+    }
+
+    private suspend fun attemptToSaveOrUpdateEvent() {
+        val isEventNameExplicitlySet = eventName.isNotBlank() && eventName != generateEventName() // Check if different from default
+        val hasItems = items.isNotEmpty()
+        val hasParticipants = participants.isNotEmpty()
+
+        if (isEventNameExplicitlySet && hasItems && hasParticipants) {
+            // Conditions met, save or update
+            val eventToSave = toEvent() // This will use currentEventDatabaseId if available, or generate new
+            eventHistoryRepository.saveFullEvent(eventToSave)
+            currentEventDatabaseId = eventToSave.id // Ensure we store the ID used (new or existing)
+        } else {
+            // Conditions not met.
+            // If it was previously saved (currentEventDatabaseId != null) but no longer meets criteria,
+            // for now, we do nothing. The entry remains in the DB.
+            // Future: could consider deleting it or marking it as a draft if requirements change.
+            // if (currentEventDatabaseId != null) {
+            //     Log.d("EventBuilderVM", "Event ${currentEventDatabaseId} no longer meets save criteria but remains in DB.")
+            // }
+        }
     }
 }

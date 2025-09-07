@@ -8,7 +8,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import me.seta.vacset.qrwari.data.repository.EventHistoryRepository
+import me.seta.vacset.qrwari.data.storage.AppDatabase
 import me.seta.vacset.qrwari.presentation.state.EventBuilderViewModel
 import me.seta.vacset.qrwari.presentation.navigation.Route
 import me.seta.vacset.qrwari.presentation.entry.EntryScreen
@@ -20,13 +24,30 @@ import me.seta.vacset.qrwari.presentation.review.ReviewScreen
 import me.seta.vacset.qrwari.presentation.settings.PromptPayViewModel
 import me.seta.vacset.qrwari.presentation.settings.SettingsScreen
 
+
+@Suppress("UNCHECKED_CAST")
+class EventBuilderViewModelFactory(
+    private val eventHistoryRepository: EventHistoryRepository
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(EventBuilderViewModel::class.java)) {
+            return EventBuilderViewModel(eventHistoryRepository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
 @ExperimentalMaterial3Api
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val eventHistoryRepository = initializeEventHistoryRepository()
+        val eventBuilderViewModelFactory = EventBuilderViewModelFactory(eventHistoryRepository)
+
         setContent {
             val nav = rememberNavController()
-            val vm: EventBuilderViewModel = viewModel() // shared across NavHost
+            val vm: EventBuilderViewModel = viewModel(factory = eventBuilderViewModelFactory)
             val settingsVm: PromptPayViewModel = viewModel()
             // observe saved PromptPay ID (null if not set)
             val promptPayId = settingsVm.promptPayIdFlow.collectAsState().value
@@ -109,5 +130,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun initializeEventHistoryRepository(): EventHistoryRepository {
+        val appDatabase = AppDatabase.getDatabase(applicationContext)
+        val eventDao = appDatabase.eventDao()
+        return EventHistoryRepository(eventDao)
     }
 }
