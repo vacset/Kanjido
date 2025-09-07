@@ -9,7 +9,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "me.seta.vacset.kanjido"
+        applicationId = "me.seta.vacset.qrwari"
         minSdk = 29
         targetSdk = 36
         versionCode = 3
