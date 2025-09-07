@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import me.seta.vacset.qrwari.presentation.state.EventBuilderViewModel
+import java.math.BigDecimal
 
 /**
  * Entry screen layout:
@@ -49,27 +50,25 @@ fun EntryScreen(
     onEditEventName: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenSettings: () -> Unit,
-    onAddParticipant: () -> Unit,
-    onRemoveParticipant: (ParticipantUi) -> Unit,
-    onPadPress: (PadKey) -> Unit,
+    onPadPress: (PadKey) -> Unit, // This is the general handler from the caller
     onCaptureBill: () -> Unit,
     onQuickQr: (String) -> Unit,
     onOpenReview: () -> Unit, // onItemClick removed
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val participantsDomain = vm.participants
-    // Map domain → UI models expected by EntryScreen
-    val participantsUi = participantsDomain.map { p ->
-        ParticipantUi(
-            id = p.id,
-            name = p.name
-        )
-    }
+    // val participantsDomain = vm.participants // vm.participants is used directly
+    // Unused variable removed:
+    // val participantsUi = participantsDomain.map { p ->
+    //     ParticipantUi(
+    //         id = p.id,
+    //         name = p.name
+    //     )
+    // }
     val itemsDraft = vm.items
     val amountText = vm.amountText
 
-    // Map domain → UI models expected by EntryScreen
+    // Map domain → UI models expected by ItemListPanel
     val itemsUi = itemsDraft.map { d ->
         ItemUi(
             id = d.id,
@@ -122,7 +121,7 @@ fun EntryScreen(
         ) {
             // Participants panel
             ParticipantPanel(
-                participants = vm.participants,
+                participants = vm.participants, // This is List<DomainParticipant> from ViewModel
                 isAdding = vm.isAddingParticipant,
                 input = vm.participantInput,
                 suggestions = vm.participantSuggestions,
@@ -163,7 +162,12 @@ fun EntryScreen(
                     )
 
                     NumericPad(
-                        onPress = onPadPress,
+                        onPress = { padKey -> // Modified to handle Negate locally
+                            when (padKey) {
+                                PadKey.Negate -> vm.negateAmount()
+                                else -> onPadPress(padKey) // Delegate other keys to the original handler
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -207,22 +211,25 @@ fun EntryScreen(
 
                     FilledTonalButton(
                         onClick = {
-                            if (promptPayId.isNullOrBlank()) {
-                                Toast.makeText(
-                                    context,
-                                    "You must set PromptPay ID in Preferences first",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            } else {
-                                // Branching rule:
-                                // - Multiple participants -> go to Review
-                                // - Otherwise -> go straight to Quick QR
-                                val participantCount = vm.participants.size
-                                if (participantCount > 1) {
-                                    onOpenReview()
-                                } else {
-                                    amountText.toBigDecimalOrNull()?.let { bd ->
-                                        onQuickQr(bd.setScale(2).toPlainString())
+                            val totalBillAmount = vm.totalAmount // Get total from ViewModel
+                            when {
+                                totalBillAmount < BigDecimal.ZERO -> {
+                                    Toast.makeText(context, "Total value is negative", Toast.LENGTH_SHORT).show()
+                                }
+                                promptPayId.isNullOrBlank() -> {
+                                    Toast.makeText(
+                                        context,
+                                        "You must set PromptPay ID in Preferences first",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                else -> {
+                                    val participantCount = vm.participants.size
+                                    if (participantCount > 1) {
+                                        onOpenReview()
+                                    } else {
+                                        // Use totalBillAmount for QR, not amountText
+                                        onQuickQr(totalBillAmount.setScale(2).toPlainString())
                                     }
                                 }
                             }
@@ -255,56 +262,6 @@ data class ItemUi(
     val amount: String,
     val byParticipantIds: List<String> = emptyList()
 )
-
-/* -------------------------- PARTICIPANTS PANEL -------------------------- */
-
-@Composable
-private fun ParticipantPanel(
-    participants: List<ParticipantUi>,
-    onAddParticipant: () -> Unit,
-    onRemoveParticipant: (ParticipantUi) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier) {
-        Text(
-            "Participants",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Spacer(Modifier.width(2.dp))
-            participants.forEach { p ->
-                AssistChip(
-                    onClick = { /* could select */ },
-                    label = { Text(p.name) },
-                    modifier = Modifier.padding(end = 8.dp),
-                    leadingIcon = null,
-                    trailingIcon = {
-                        Text(
-                            "×",
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .clickable { onRemoveParticipant(p) }
-                                .padding(horizontal = 6.dp),
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
-                )
-            }
-            InputChip(
-                selected = false,
-                onClick = onAddParticipant,
-                label = { Text("Add") },
-                modifier = Modifier.padding(end = 8.dp)
-            )
-        }
-    }
-}
 
 /* -------------------------- AMOUNT DISPLAY -------------------------- */
 
@@ -342,6 +299,7 @@ sealed interface PadKey {
     data object Backspace : PadKey
     data object Clear : PadKey
     data object Enter : PadKey
+    data object Negate : PadKey
 }
 
 @Composable
@@ -383,13 +341,14 @@ private fun NumericPad(
             KeyCell { KeyButton(label = "2") { onPress(PadKey.Digit(2)) } }
             KeyCell { KeyButton(label = "3") { onPress(PadKey.Digit(3)) } }
         }
-        KeyRow {
-            KeyCell { KeyButton(label = "C") { onPress(PadKey.Clear) } }
+        KeyRow { // Row 4: Negate, 0, Dot
+            KeyCell { KeyButton(label = "-/+") { onPress(PadKey.Negate) } } 
             KeyCell { KeyButton(label = "0") { onPress(PadKey.Digit(0)) } }
             KeyCell { KeyButton(label = ".") { onPress(PadKey.Dot) } }
         }
-        KeyRow {
-            KeyCell { KeyButton(icon = Icons.AutoMirrored.Filled.Backspace, // Updated Icon
+        KeyRow { // Row 5: Clear, Backspace, Enter
+            KeyCell { KeyButton(label = "C") { onPress(PadKey.Clear) } } 
+            KeyCell { KeyButton(icon = Icons.AutoMirrored.Filled.Backspace, 
                 iconContentDescription = "Backspace") { onPress(PadKey.Backspace) } }
             KeyCell {
                 KeyButton(
@@ -398,7 +357,6 @@ private fun NumericPad(
                     filled = true
                 ) { onPress(PadKey.Enter) }
             }
-            KeyCell { Spacer(modifier = Modifier.height(1.dp)) }
         }
     }
 }

@@ -165,25 +165,19 @@ class EventBuilderViewModel : ViewModel() {
                 amount = amount
             )
         )
-        // TODO: add to history once the first item is entered
     }
 
     fun removeItemById(itemId: String) {
-        // Remove the item
         items.removeAll { it.id == itemId }
-        // Also clear any selection mapping for this item
         selectedByItemId.remove(itemId)
-        // If the removed item was being edited, cancel the edit
         if (itemId == editingItemId) {
             cancelEditItemName()
         }
     }
 
-    // Build a domain Event with actual Item objects + selected tags
     fun toEvent(name: String = generateEventName()): Event {
         val ps = participants.toList()
         val idSetAll = ps.map { it.id }.toSet()
-
         val builtItems = items.map { draft ->
             val selected = selectedByItemId[draft.id]
             Item(
@@ -191,7 +185,7 @@ class EventBuilderViewModel : ViewModel() {
                 label = draft.label,
                 amount = draft.amount,
                 taggedParticipantIds = when {
-                    selected == null || selected.isEmpty() -> setOf("ALL") // default
+                    selected == null || selected.isEmpty() -> setOf("ALL")
                     selected.containsAll(idSetAll) -> setOf("ALL")
                     else -> selected
                 }
@@ -204,44 +198,32 @@ class EventBuilderViewModel : ViewModel() {
         )
     }
 
-    // Per-item selection map: itemId -> selected participant IDs
     private val selectedByItemId = mutableStateMapOf<String, MutableSet<String>>()
 
     fun toggleAssignment(itemId: String, participantId: String) {
-        // 1. Get a copy of the current selections, or a new set if none exist.
         val currentSelections = selectedByItemId[itemId]?.toMutableSet() ?: mutableSetOf()
-
-        // 2. Perform the toggle logic on this copy.
         if (!currentSelections.add(participantId)) {
             currentSelections.remove(participantId)
         }
-
-        // 3. Update the map:
         if (currentSelections.isEmpty()) {
-            // If the set becomes empty, remove the entry from the map.
-            // This makes it consistent with assignToAll and correctly triggers "ALL" state.
             selectedByItemId.remove(itemId)
         } else {
-            // Otherwise, put the modified set back into the map.
-            // This ensures a structural change that Compose will detect.
             selectedByItemId[itemId] = currentSelections
         }
     }
 
-    fun assignToAll(itemId: String) { // New function
+    fun assignToAll(itemId: String) {
         selectedByItemId.remove(itemId)
     }
 
     fun selectedFor(itemId: String): Set<String> = selectedByItemId[itemId] ?: emptySet()
 
-    // Draft representation for UI before we build domain Items
     data class ItemDraft(
         val id: String = UUID.randomUUID().toString(),
         val label: String? = null,
         val amount: BigDecimal
     )
 
-    // Event name shown on EntryScreen (editable)
     var eventName by mutableStateOf(generateEventName())
         private set
 
@@ -249,12 +231,20 @@ class EventBuilderViewModel : ViewModel() {
         eventName = name.ifBlank { generateEventName() }
     }
 
-    // Numeric input currently on the left pane of EntryScreen
     var amountText by mutableStateOf("0")
         private set
 
     fun clearAmount() {
         amountText = "0"
+    }
+
+    fun negateAmount() {
+        if (amountText == "0" || amountText.isBlank()) return
+        amountText = if (amountText.startsWith("-")) {
+            amountText.substring(1)
+        } else {
+            "-$amountText"
+        }
     }
 
     fun backspace() {
@@ -267,25 +257,30 @@ class EventBuilderViewModel : ViewModel() {
 
     fun pressDigit(d: Int) {
         if (d !in 0..9) return
-        amountText = if (amountText == "0") d.toString() else amountText + d.toString()
+        val currentNumber = amountText.toBigDecimalOrNull() ?: BigDecimal.ZERO
+        if (currentNumber.compareTo(BigDecimal.ZERO) == 0 && !amountText.contains(".")) {
+             // If current is 0 (and not "0."), replace with digit, unless it's a negative sign only
+            amountText = if (amountText == "-") "-$d" else d.toString()        
+        } else {
+            amountText += d.toString()
+        }
     }
 
-    /**
-     * Confirm current amount input. You can extend this to immediately create an item.
-     * For now it only normalizes the text (no-op). */
     fun enterAmount() {
-        // Keep as hook; if you want to auto-add: addItem(BigDecimal(normalized), label = null)
-        amountText = amountText.trim().ifBlank { "0" }
-        // no-op if 0
-        val number = BigDecimal(amountText)
-        if (number.compareTo(BigDecimal.ZERO) == 0) {
+        val normalized = amountText.trim()
+        if (normalized.isBlank() || normalized == "-" || normalized == "." || normalized == "-.") {
+            amountText = "0" // Reset if invalid input like just "-" or "."
+            return
+        }
+        val number = normalized.toBigDecimalOrNull()
+        if (number == null || number.compareTo(BigDecimal.ZERO) == 0) {
+            amountText = "0" // Reset if not a valid number or it's zero
             return
         }
         addItem(number, label = null)
         clearAmount()
     }
 
-    // --- Item Name Editing State & Logic ---
     var editingItemId by mutableStateOf<String?>(null)
         private set
     var itemNameEditInput by mutableStateOf("")
@@ -309,7 +304,7 @@ class EventBuilderViewModel : ViewModel() {
             if (itemIndex != -1) {
                 val oldItem = items[itemIndex]
                 val newItem = oldItem.copy(label = itemNameEditInput.trim().takeUnless { it.isBlank() })
-                items[itemIndex] = newItem // Replace the item in the list
+                items[itemIndex] = newItem
             }
         }
         editingItemId = null

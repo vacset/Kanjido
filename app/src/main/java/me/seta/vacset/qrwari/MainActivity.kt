@@ -52,13 +52,6 @@ class MainActivity : ComponentActivity() {
                         onOpenSettings = { nav.navigate(Route.Settings.path) },
 
                         // Participants panel
-                        onAddParticipant = {
-                            // Navigate to your existing Participants screen for entry
-                            nav.navigate(Route.Participants.path)
-                        },
-                        onRemoveParticipant = { pUi ->
-                            vm.removeParticipant(pUi.id)
-                        },
 
                         // Keypad
                         onPadPress = { key ->
@@ -68,6 +61,7 @@ class MainActivity : ComponentActivity() {
                                 PadKey.Backspace -> vm.backspace()
                                 PadKey.Clear -> vm.clearAmount()
                                 PadKey.Enter -> vm.enterAmount()
+                                PadKey.Negate -> vm.negateAmount()
                             }
                         },
 
