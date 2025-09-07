@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Kanjido"
+rootProject.name = "qrwari"
 include(":app")
