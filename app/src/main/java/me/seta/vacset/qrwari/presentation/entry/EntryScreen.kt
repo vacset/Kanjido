@@ -64,10 +64,13 @@ fun EntryScreen(
     val itemsUi = itemsDraft.map { d ->
         ItemUi(
             id = d.id,
-            name = d.label ?: "Item", // Provide a default name if label is null
-            amount = d.amount.toPlainString()
+            name = d.label, // Name is now nullable, pass label directly
+            amount = "฿${d.amount.setScale(2).toPlainString()}" // Add currency symbol to individual items as well
         )
     }
+    
+    // Formatted total amount for ItemListPanel
+    val totalAmountFormatted = "฿${vm.totalAmount.setScale(2).toPlainString()}"
 
     Scaffold(
         topBar = {
@@ -189,6 +192,7 @@ fun EntryScreen(
                 ) {
                     ItemListPanel(
                         items = itemsUi,
+                        totalAmountFormatted = totalAmountFormatted, // Pass the formatted total
                         onRemove = { itemId -> vm.removeItemById(itemId) },
                         editingItemId = vm.editingItemId,
                         itemNameEditInput = vm.itemNameEditInput,
@@ -250,8 +254,8 @@ data class ParticipantUi(
 
 data class ItemUi(
     val id: String,
-    val name: String,
-    val amount: String,
+    val name: String?, // Name is now nullable
+    val amount: String, // Expects formatted amount (e.g., "฿123.45")
     val byParticipantIds: List<String> = emptyList()
 )
 
@@ -399,4 +403,3 @@ private fun KeyButton(
         }
     }
 }
-

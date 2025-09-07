@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+// import androidx.compose.material.icons.filled.Edit // No longer used for item name hint
+import androidx.compose.material.icons.outlined.Edit // Added for item name hint
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,6 +23,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow // Added import for TextOverflow
 import androidx.compose.ui.unit.dp
 
 private val ItemCardShape = RoundedCornerShape(12.dp)
@@ -29,6 +32,7 @@ private val ItemCardShape = RoundedCornerShape(12.dp)
 @Composable
 fun ItemListPanel(
     items: List<ItemUi>,
+    totalAmountFormatted: String, // New parameter for the formatted total amount
     onRemove: (String) -> Unit,
     editingItemId: String?,
     itemNameEditInput: String,
@@ -57,9 +61,9 @@ fun ItemListPanel(
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .weight(1f), // Takes up available space, pushing total to the bottom of its section
             contentPadding = PaddingValues(vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp) // Handles spacing between items
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(
                 items = items,
@@ -67,10 +71,9 @@ fun ItemListPanel(
             ) { item ->
                 val isEditingCurrentItem = item.id == editingItemId
 
-                // No need for the extra Box for padding, verticalArrangement in LazyColumn handles it
                 val dismissState = rememberSwipeToDismissBoxState(
                     confirmValueChange = { v ->
-                        if (isEditingCurrentItem) return@rememberSwipeToDismissBoxState false // Prevent swipe while editing
+                        if (isEditingCurrentItem) return@rememberSwipeToDismissBoxState false
                         when (v) {
                             SwipeToDismissBoxValue.StartToEnd,
                             SwipeToDismissBoxValue.EndToStart -> {
@@ -84,10 +87,10 @@ fun ItemListPanel(
 
                 SwipeToDismissBox(
                     state = dismissState,
-                    enableDismissFromStartToEnd = !isEditingCurrentItem, // Disable swipe if editing
-                    enableDismissFromEndToStart = !isEditingCurrentItem, // Disable swipe if editing
+                    enableDismissFromStartToEnd = !isEditingCurrentItem,
+                    enableDismissFromEndToStart = !isEditingCurrentItem,
                     backgroundContent = {
-                        if (!isEditingCurrentItem) { // Only show dismiss background if not editing
+                        if (!isEditingCurrentItem) {
                             DismissBackground(
                                 state = dismissState,
                                 shape = ItemCardShape
@@ -100,7 +103,6 @@ fun ItemListPanel(
                                 if (!isEditingCurrentItem) {
                                     onStartEditItemName(item.id)
                                 }
-                                // If it is editing, card click does nothing, handled by buttons
                             },
                             shape = ItemCardShape,
                             modifier = Modifier.fillMaxWidth()
@@ -141,9 +143,25 @@ fun ItemListPanel(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(item.name, style = MaterialTheme.typography.titleSmall)
+                                    if (item.name.isNullOrBlank()) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Edit,
+                                            contentDescription = "Set item name",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    } else {
+                                        Text(
+                                            text = item.name,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        )
+                                    }
+                                    Spacer(Modifier.width(8.dp)) // Added spacer
                                     Text(
-                                        item.amount,
+                                        text = item.amount,
                                         style = MaterialTheme.typography.titleSmall.copy(
                                             fontWeight = FontWeight.SemiBold
                                         )
@@ -155,10 +173,32 @@ fun ItemListPanel(
                 )
             }
         }
+
+        // Display Total Amount if items are not empty
+        // This will be displayed after the LazyColumn, at the bottom of the ItemListPanel's Column.
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp), // Consistent with item content padding ideas
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Total",
+                style = MaterialTheme.typography.titleMedium, // Changed to titleMedium for prominence
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                totalAmountFormatted,
+                style = MaterialTheme.typography.titleMedium, // Changed to titleMedium
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class) // Added for SwipeToDismissBoxState
+@OptIn(ExperimentalMaterial3Api::class) 
 @Composable
 private fun DismissBackground(
     state: SwipeToDismissBoxState,
@@ -168,7 +208,7 @@ private fun DismissBackground(
 
     val bgColor by animateColorAsState(
         targetValue = if (isSwiping) MaterialTheme.colorScheme.errorContainer
-        else MaterialTheme.colorScheme.surfaceVariant, // Or Color.Transparent if you prefer no bg when not swiping
+        else MaterialTheme.colorScheme.surfaceVariant, 
         label = "dismissBg"
     )
     val iconScale by animateFloatAsState(
@@ -179,7 +219,7 @@ private fun DismissBackground(
     val alignment = when (state.dismissDirection) {
         SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
         SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-        else -> Alignment.CenterEnd // Should not happen with current logic
+        else -> Alignment.CenterEnd 
     }
 
     Box(
@@ -190,7 +230,7 @@ private fun DismissBackground(
             .padding(horizontal = 16.dp),
         contentAlignment = alignment
     ) {
-        if (isSwiping) { // Only show icon when actually swiping
+        if (isSwiping) { 
             Icon(
                 imageVector = Icons.Filled.Delete,
                 contentDescription = "Delete",
