@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "me.seta.vacset.kanjido"
+    namespace = "me.seta.vacset.qrwari"
     compileSdk = 36
 
     defaultConfig {
