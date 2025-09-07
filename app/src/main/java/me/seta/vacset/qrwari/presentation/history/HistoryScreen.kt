@@ -40,6 +40,7 @@ private val HistoryItemCardShape = RoundedCornerShape(12.dp)
 fun HistoryScreen(
     vm: EventHistoryViewModel,
     onBack: () -> Unit,
+    onEventSelected: (eventId: String) -> Unit, // New callback
 ) {
     
     // Use LaunchedEffect to load data when the screen enters composition or recomposes
@@ -131,7 +132,10 @@ fun HistoryScreen(
                                 )
                             },
                             content = {
-                                EventHistoryItemCard(item = eventItem)
+                                EventHistoryItemCard(
+                                    item = eventItem,
+                                    onClick = { onEventSelected(eventItem.id) } // Pass the click up
+                                )
                             }
                         )
                     }
@@ -201,10 +205,14 @@ private fun HistoryDismissBackground(
 
 
 @Composable
-fun EventHistoryItemCard(item: EventHistoryItemUiState) {
+fun EventHistoryItemCard(
+    item: EventHistoryItemUiState,
+    onClick: () -> Unit // New onClick parameter
+) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = HistoryItemCardShape
+        shape = HistoryItemCardShape,
+        onClick = onClick // Make the card clickable
     ) {
         Row(
             modifier = Modifier
@@ -263,7 +271,7 @@ private fun createPreviewHistoryViewModel(): EventHistoryViewModel {
 fun HistoryScreenEmptyPreview() {
     val previewVm = remember { createPreviewHistoryViewModel() }
     MaterialTheme {
-        HistoryScreen(vm = previewVm, onBack = {})
+        HistoryScreen(vm = previewVm, onBack = {}, onEventSelected = {})
     }
 }
 
@@ -271,7 +279,7 @@ fun HistoryScreenEmptyPreview() {
 @Composable
 fun EventHistoryItemCardPreview() {
     MaterialTheme {
-        EventHistoryItemCard(item = previewDummyEventItems.first())
+        EventHistoryItemCard(item = previewDummyEventItems.first(), onClick = {})
     }
 }
 
@@ -280,7 +288,7 @@ fun EventHistoryItemCardPreview() {
 fun HistoryScreenPopulatedPreviewShowsEmpty() {
      val previewVm = remember { createPreviewHistoryViewModel() }
     MaterialTheme {
-        HistoryScreen(vm = previewVm, onBack = {})
+        HistoryScreen(vm = previewVm, onBack = {}, onEventSelected = {})
     }
 }
 

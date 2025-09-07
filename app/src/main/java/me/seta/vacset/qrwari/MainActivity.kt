@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.collectAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -25,6 +26,7 @@ import me.seta.vacset.qrwari.presentation.review.ReviewScreen
 import me.seta.vacset.qrwari.presentation.history.HistoryScreen
 import me.seta.vacset.qrwari.presentation.settings.PromptPayViewModel
 import me.seta.vacset.qrwari.presentation.settings.SettingsScreen
+import kotlinx.coroutines.launch
 
 
 @Suppress("UNCHECKED_CAST")
@@ -66,6 +68,7 @@ class MainActivity : ComponentActivity() {
             val vm: EventBuilderViewModel = viewModel(factory = eventBuilderViewModelFactory)
             val settingsVm: PromptPayViewModel = viewModel()
             val historyVm: EventHistoryViewModel = viewModel(factory = eventHistoryViewModelFactory)
+            val scope = rememberCoroutineScope() // Coroutine scope for launching async operations
 
             // observe saved PromptPay ID (null if not set)
             val promptPayId = settingsVm.promptPayIdFlow.collectAsState().value
@@ -147,8 +150,13 @@ class MainActivity : ComponentActivity() {
                 composable(Route.History.path) {
                     HistoryScreen(
                         vm = historyVm,
-                        onBack = { nav.popBackStack() }
-                        // Pass other actions later: onClearAll, onDeleteEvent
+                        onBack = { nav.popBackStack() },
+                        onEventSelected = { eventId ->
+                            scope.launch {
+                                vm.loadEventForEditing(eventId) // This function will be added to EventBuilderViewModel
+                                nav.navigate(Route.Entry.path)
+                            }
+                        }
                     )
                 }
             }

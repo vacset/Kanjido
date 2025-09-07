@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import me.seta.vacset.qrwari.data.model.Event
 import me.seta.vacset.qrwari.data.model.Item
 import me.seta.vacset.qrwari.data.model.Participant
+// Import for EventWithDetails
+import me.seta.vacset.qrwari.data.storage.EventWithDetails 
 import me.seta.vacset.qrwari.data.repository.EventHistoryRepository
 import me.seta.vacset.qrwari.util.generateEventName
 import java.math.BigDecimal
@@ -266,7 +268,7 @@ class EventBuilderViewModel(
     }
 
     fun pressDot() {
-        if (!amountText.contains('.')) amountText = amountText + "."
+        if (!amountText.contains('.')) amountText = "$amountText."
     }
 
     fun pressDigit(d: Int) {
@@ -366,5 +368,59 @@ class EventBuilderViewModel(
 
         // Optionally, you might want to log this or perform other cleanup
         // For instance, if you had loaded an event to edit, this would discard changes
+    }
+
+    suspend fun loadEventForEditing(eventId: String) {
+        resetToNewEvent() // Clear current state first
+
+        val eventDetails = eventHistoryRepository.getEventDetails(eventId) // Use correct repository method
+
+        if (eventDetails != null) {
+            val domainEvent = mapEventWithDetailsToDomainEvent(eventDetails)
+
+            currentEventDatabaseId = domainEvent.id
+            eventName = domainEvent.name
+
+            participants.addAll(domainEvent.participants)
+
+            val loadedItemDrafts = domainEvent.items.map { di -> // di for domainItem
+                ItemDraft(id = di.id, label = di.label, amount = di.amount)
+            }
+            items.addAll(loadedItemDrafts)
+
+            // Reconstruct selectedByItemId
+            domainEvent.items.forEach { di -> // di for domainItem
+                if (di.taggedParticipantIds.isNotEmpty() && !di.taggedParticipantIds.contains("ALL")) {
+                    selectedByItemId[di.id] = di.taggedParticipantIds.toMutableSet()
+                }
+            }
+        }
+        // Else: event not found, perhaps log an error or handle as needed
+    }
+
+    private fun mapEventWithDetailsToDomainEvent(eventDetails: me.seta.vacset.qrwari.data.storage.EventWithDetails): me.seta.vacset.qrwari.data.model.Event {
+        val domainParticipants = eventDetails.participants.map { entity ->
+            Participant(
+                id = entity.id,
+                name = entity.name
+            )
+        }
+
+        val domainItems = eventDetails.items.map { entity ->
+            Item(
+                id = entity.id,
+                label = entity.label,
+                amount = entity.amount,
+                taggedParticipantIds = entity.taggedParticipantIds // Directly from ItemEntity
+            )
+        }
+
+        return me.seta.vacset.qrwari.data.model.Event(
+            id = eventDetails.event.id,
+            name = eventDetails.event.name,
+            createdAt = eventDetails.event.createdAt,
+            participants = domainParticipants,
+            items = domainItems
+        )
     }
 }
