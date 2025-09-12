@@ -274,6 +274,8 @@ fun EntryScreen(
 
                     FilledTonalButton(
                         onClick = {
+                            vm.enterAmount() // Process pending numeric input first
+
                             val totalBillAmount = vm.totalAmount
                             when {
                                 totalBillAmount < BigDecimal.ZERO -> {
